@@ -1,0 +1,7 @@
+results/
+data/
+__pycache__
+scripts/*.sh
+scripts/*.out
+.mypy_cache
+

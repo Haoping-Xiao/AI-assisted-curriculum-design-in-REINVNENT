@@ -1,0 +1,47 @@
+{
+  "name": "ring",
+  "components":[
+    {
+      "component_type": "num_rings",
+      "name": "num_rings_1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 5,
+        "low": 0
+      } 
+    },
+    {
+      "component_type": "num_rings",
+      "name": "num_rings_2",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 10,
+        "low": 0
+      } 
+    },
+    {
+      "component_type": "num_rings",
+      "name": "num_rings_3",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 8,
+        "low": 2,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 10,
+        "transformation": true
+      } 
+    }
+  ]
+}

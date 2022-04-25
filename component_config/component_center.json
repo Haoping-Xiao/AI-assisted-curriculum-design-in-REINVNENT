@@ -1,0 +1,45 @@
+{
+  "name": "number_of_stereo_centers",
+  "components":[
+    {
+      "component_type": "number_of_stereo_centers",
+      "name": "number_of_stereo_centers_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 2,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "number_of_stereo_centers",
+      "name": "number_of_stereo_centers_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 4,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "number_of_stereo_centers",
+      "name": "number_of_stereo_centers_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "reverse_sigmoid",
+        "high": 10,
+        "low": 0,
+        "k":0.5
+      }
+    }
+  ]
+}

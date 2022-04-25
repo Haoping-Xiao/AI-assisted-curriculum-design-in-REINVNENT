@@ -1,0 +1,39 @@
+{
+  "name": "activity",
+  "components":[
+    {
+      "component_type": "predictive_property",
+      "name": "drd2 human component 1",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_1",
+      "smiles": [],
+      "specific_parameters": {
+        "container_type": "gpflow_container",
+        "descriptor_type": "ecfp",
+        "gpflow": "regression",
+        "high": 1,
+        "low": 0,
+        "size": 1024,
+        "transformation": true,
+        "transformation_type": "clipping"
+      }
+    },
+    {
+      "component_type": "predictive_property",
+      "name": "drd2 human component 2",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_2",
+      "smiles": [],
+      "specific_parameters": {
+        "container_type": "gpflow_container",
+        "descriptor_type": "ecfp",
+        "gpflow": "regression",
+        "high": 1,
+        "low": 0,
+        "size": 1024,
+        "transformation": true,
+        "transformation_type": "clipping"
+      }
+    }
+  ]
+}

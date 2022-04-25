@@ -1,0 +1,20 @@
+{
+  "name": "custom_sum",
+  "parallel": true,
+  "parameters": [
+    {"component_type": "predictive_property",
+      "name": "DRD2",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
+      "smiles": [],
+      "specific_parameters": {
+          "transformation_type": "no_transformation",
+          "scikit": "classification",
+          "transformation": false,
+          "descriptor_type": "ecfp",
+          "size": 2048,
+          "radius": 3
+          }
+    }
+  ]
+}

@@ -1,0 +1,334 @@
+{
+  "name": "components for drd2 activity",
+  "components":[
+    {
+      "component_type": "predictive_property",
+      "name": "drd2_activity_1",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_1",
+      "smiles": [],
+      "specific_parameters": {
+        "container_type": "gpflow_container",
+        "descriptor_type": "ecfp",
+        "gpflow": "regression",
+        "high": 1,
+        "low": 0,
+        "size": 1024,
+        "transformation": true,
+        "transformation_type": "clipping"
+      }
+    },
+    {
+      "component_type": "predictive_property",
+      "name": "drd2_activity_2",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_2",
+      "smiles": [],
+      "specific_parameters": {
+        "container_type": "gpflow_container",
+        "descriptor_type": "ecfp",
+        "gpflow": "regression",
+        "high": 1,
+        "low": 0,
+        "size": 1024,
+        "transformation": true,
+        "transformation_type": "clipping"
+      }
+    },
+    {
+      "component_type": "tpsa",
+      "name": "tpsa_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 290,
+        "low": 3
+      }
+    },
+    {
+      "component_type": "tpsa",
+      "name": "tpsa_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 50,
+        "low": 3
+      }
+    },
+    {
+      "component_type": "custom_alerts",
+      "name": "Custom_alerts",              
+      "weight": 1,
+      "smiles":[                        
+        "[*;r8]",
+        "[*;r9]",
+        "[*;r10]",
+        "[*;r11]",
+        "[*;r12]",
+        "[*;r13]",
+        "[*;r14]",
+        "[*;r15]",
+        "[*;r16]",
+        "[*;r17]",
+        "[#8][#8]",
+        "[#6;+]",
+        "[#16][#16]",
+        "[#7;!n][S;!$(S(=O)=O)]",
+        "[#7;!n][#7;!n]",
+        "C#C",
+        "C(=[O,S])[O,S]",
+        "[#7;!n][C;!$(C(=[O,N])[N,O])][#16;!s]",
+        "[#7;!n][C;!$(C(=[O,N])[N,O])][#7;!n]",
+        "[#7;!n][C;!$(C(=[O,N])[N,O])][#8;!o]",
+        "[#8;!o][C;!$(C(=[O,N])[N,O])][#16;!s]",
+        "[#8;!o][C;!$(C(=[O,N])[N,O])][#8;!o]",
+        "[#16;!s][C;!$(C(=[O,N])[N,O])][#16;!s]"
+    ],
+      "model_path": null,                        
+      "specific_parameters": {}
+    },
+    {
+      "component_type": "number_of_stereo_centers",
+      "name": "number_of_stereo_centers_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 2,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "graph_length",
+      "name": "graph_length_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 25,
+        "low": 5
+      }
+    },
+    {
+      "component_type": "graph_length",
+      "name": "graph_length_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 30,
+        "low": 5
+      }
+    },
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 10,
+        "low": 1
+      }
+    },
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 18,
+        "low": 1
+      }
+    },
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 10,
+        "low": 2,
+        "coef_div": 50,
+        "coef_si": 10,
+        "coef_se": 50,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "num_hbd_lipinski_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 3,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "num_hbd_lipinski_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 6,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_rotatable_bonds",
+      "name": "num_rotatable_bonds_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 5,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_rings",
+      "name": "num_rings_1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 5,
+        "low": 0
+      } 
+    },
+    {
+      "component_type": "num_rings",
+      "name": "num_rings_3",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 8,
+        "low": 2,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 10,
+        "transformation": true
+      } 
+    },
+    {
+      "component_type": "slogp",
+      "name": "slogp_1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 5,
+        "low": -1,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 10,
+        "transformation": true
+      } 
+    },
+    {
+      "component_type": "slogp",
+      "name": "slogp_2",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 8,
+        "low": -1,
+        "coef_div": 10,
+        "coef_si": 10,
+        "coef_se": 100,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular_mass_1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 500,
+        "low": 300,
+        "coef_div": 2000,
+        "coef_si": 20,
+        "coef_se": 100,
+        "transformation": true
+      }  
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular_mass_4",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "step",
+        "high": 500,
+        "low": 200,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "qed_score",
+      "name": "QED",        
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }                
+    },
+    {
+      "component_type": "rdkit_sa_score",
+      "name": "sa",        
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "reverse_sigmoid",
+        "high": 10,
+        "low": 1,
+        "k":0.5,
+        "transformation": true
+      }             
+    }
+
+
+  ]
+}

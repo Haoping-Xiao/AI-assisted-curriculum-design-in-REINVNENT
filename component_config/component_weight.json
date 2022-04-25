@@ -1,0 +1,79 @@
+{
+  "name": "Molecular mass",
+  "components":[
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular mass 1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 500,
+        "low": 300,
+        "coef_div": 2000,
+        "coef_si": 20,
+        "coef_se": 100,
+        "transformation": true
+      }  
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular mass 2",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 600,
+        "low": 300,
+        "coef_div": 2000,
+        "coef_si": 20,
+        "coef_se": 20,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular mass 3",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 700,
+        "low": 300,
+        "coef_div": 3000,
+        "coef_si": 20,
+        "coef_se": 50,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular mass 4",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "step",
+        "high": 500,
+        "low": 200,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "molecular_weight",
+      "name": "Molecular mass 5",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "step",
+        "high": 600,
+        "low": 200,
+        "transformation": true
+      }
+    }
+  ]
+}

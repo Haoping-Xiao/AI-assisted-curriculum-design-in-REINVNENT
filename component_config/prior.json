@@ -1,0 +1,18 @@
+{
+  "logging": {
+      "job_id": "05-04-2022",
+      "job_name": "run_single_component",
+      "logging_path": "/scratch/work/xiaoh2/Thesis/scripts/../results/prior",
+      "recipient": "local",
+      "sender": "http://127.0.0.1"
+  },
+  "parameters": {
+      "batch_size": 128,
+      "model_path": "/scratch/work/xiaoh2/Thesis/scripts/../../reinventcli/data/augmented.prior",
+      "num_smiles": 1024,
+      "output_smiles_path": "/scratch/work/xiaoh2/Thesis/scripts/../results/prior/sampled.csv",
+      "with_likelihood": false
+  },
+  "run_type": "sampling",
+  "version": 2
+}

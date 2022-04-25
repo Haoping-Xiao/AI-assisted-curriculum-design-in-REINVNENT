@@ -1,0 +1,53 @@
+{
+  "name": "slogp",
+  "components":[
+    {
+      "component_type": "slogp",
+      "name": "slogp_1",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 5,
+        "low": -1,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 10,
+        "transformation": true
+      } 
+    },
+    {
+      "component_type": "slogp",
+      "name": "slogp_2",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 8,
+        "low": -1,
+        "coef_div": 10,
+        "coef_si": 10,
+        "coef_se": 100,
+        "transformation": true
+      }
+    },
+    {
+      "component_type": "slogp",
+      "name": "slogp_3",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 10,
+        "low": -1,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 100,
+        "transformation": true
+      }
+    }
+  ]
+}

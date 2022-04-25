@@ -1,0 +1,44 @@
+{
+  "name": "graph_length",
+  "components":[
+    {
+      "component_type": "graph_length",
+      "name": "graph_length_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 25,
+        "low": 5
+      }
+    },
+    {
+      "component_type": "graph_length",
+      "name": "graph_length_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 30,
+        "low": 5
+      }
+    },
+    {
+      "component_type": "graph_length",
+      "name": "graph_length_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 40,
+        "low": 5
+      }
+    }
+  ]
+}

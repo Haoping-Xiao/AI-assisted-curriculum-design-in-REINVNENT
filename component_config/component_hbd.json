@@ -1,0 +1,73 @@
+{
+  "name": "hbd",
+  "components":[
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "num_hbd_lipinski_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 3,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "num_hbd_lipinski_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 6,
+        "low": 3
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "num_hbd_lipinski_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 6,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "HB-donors (Lipinski)",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 10,
+        "low": 6
+      }
+    },
+    {
+      "component_type": "num_hbd_lipinski",
+      "name": "HB-donors (Lipinski)",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 10,
+        "low": 0
+      }
+    }
+  ]
+}
+
+
+

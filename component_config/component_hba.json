@@ -1,0 +1,47 @@
+{
+  "name": "num_hba_lipinski",
+  "components":[
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 10,
+        "low": 1
+      }
+    },
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 18,
+        "low": 1
+      }
+    },
+    {
+      "component_type": "num_hba_lipinski",
+      "name": "num_hba_lipinski_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 10,
+        "low": 2,
+        "coef_div": 50,
+        "coef_si": 10,
+        "coef_se": 50,
+        "transformation": true
+      }
+    }
+  ]
+}

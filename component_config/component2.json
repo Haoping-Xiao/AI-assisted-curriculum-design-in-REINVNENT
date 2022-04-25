@@ -1,0 +1,14 @@
+
+{
+    "name": "custom_sum", 
+    "parallel": false,
+    "parameters": [{
+        "component_type": "matching_substructure",
+        "name": "H-Bonding Ring",     
+        "specific_parameters": {
+            "smiles": [
+                    "[c]1[c][c]nc(n1)[N]"    
+            ]
+        },    
+        "weight": 1}]           
+}

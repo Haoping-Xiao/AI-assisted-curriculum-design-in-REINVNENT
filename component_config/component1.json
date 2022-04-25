@@ -1,0 +1,14 @@
+
+{
+    "name": "custom_sum", 
+    "parallel": false,
+    "parameters": [{
+        "component_type": "matching_substructure",
+        "name": "Pyrimidine",     
+        "specific_parameters": {
+            "smiles": [
+                    "[c]1[c][c]n[c]n1"    
+            ]
+        },    
+        "weight": 1}]           
+}

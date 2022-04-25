@@ -1,0 +1,45 @@
+
+{
+  "name": "components for drd2 activity",
+  "components":[
+    {
+      "component_type": "num_rotatable_bonds",
+      "name": "num_rotatable_bonds_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 5,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_rotatable_bonds",
+      "name": "num_rotatable_bonds_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 9,
+        "low": 0
+      }
+    },
+    {
+      "component_type": "num_rotatable_bonds",
+      "name": "num_rotatable_bonds_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 15,
+        "low": 0
+      }
+    }
+  ]
+}

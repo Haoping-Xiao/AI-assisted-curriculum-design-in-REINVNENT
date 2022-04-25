@@ -1,0 +1,19 @@
+
+
+{
+  "name": "custom_sum",
+  "parallel": true,
+  "parameters": [
+    {
+      "component_type": "qed_score",
+      "name": "QED",        
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }                
+    }
+  ]
+}

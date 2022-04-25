@@ -1,0 +1,44 @@
+{
+  "name": "tpsa",
+  "components":[
+    {
+      "component_type": "tpsa",
+      "name": "tpsa_1",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 290,
+        "low": 3
+      }
+    },
+    {
+      "component_type": "tpsa",
+      "name": "tpsa_2",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 150,
+        "low": 3
+      }
+    },
+    {
+      "component_type": "tpsa",
+      "name": "tpsa_3",
+      "weight": 1,
+      "smiles":[],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation": true,
+        "transformation_type": "step",
+        "high": 50,
+        "low": 3
+      }
+    }
+  ]
+}
