@@ -1,81 +1,88 @@
+from pathlib import Path
 import os
-from typing import List,Optional
-from utils import read_component_config, write_curriculum_file, write_sample_file, write_run_train, write_run_sample
+from typing import Dict, List,Optional
+from utils import  write_curriculum_file, write_sample_file, write_run_train, write_run_sample
 from datetime import datetime
 import subprocess
+from time import sleep
 
+from enums import ComponentEnum
+import logging
 
+logging.basicConfig(format=' %(levelname)s %(asctime)s %(message)s',level = logging.DEBUG)
 
-
-def execute_curriculum(curriculum_name:List,agent:str,output_dir:Optional[str]=None,training_mode:Optional[bool]=True)->str:
-  jobname = 'run_curriculum_{}'.format(curriculum_name[-1])
+def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,output_dir:Path, using_gpu:Optional[bool]=True ,production_mode:Optional[bool]=False)->Path:
+  # jobname = '_'.join(list(map(lambda enums: enums.value,curriculum_name)))
   jobid=datetime.now().strftime("%d-%m-%Y")
-  dir_path = os.path.dirname(os.path.realpath(__file__))
-  output_dir=os.path.join(output_dir,"{}".format(jobname)) if output_dir else os.path.join(dir_path,"../results/{}".format(jobname))
-
+  if production_mode:
+    output_dir=os.path.join(output_dir,"production")
+  else:
+    output_dir=os.path.join(output_dir,"{}".format(jobname))
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  if training_mode:
-    config_filename="component_lib.json"
-    config_path=os.path.join(dir_path,"../component_config")
-    reinvent_dir= os.path.join(dir_path,"../../reinventcli")
-    reinvent_env="/home/xiaoh2/.conda/envs/shared"
-    config=read_component_config(config_path,config_filename)
-    components_config=config["components"]
-    components=[]
-    for component in components_config:
-      if component["name"] in curriculum_name:
-        components.append(component)
-        # write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, component) if training_mode else write_sample_file(jobid, jobname,  output_dir)
-    write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, components)
-    write_sample_file(jobid, jobname,  output_dir)
-    # write_run_train(output_dir, reinvent_env, reinvent_dir,gpu=False) if training_mode else write_run_sample(output_dir, reinvent_env, reinvent_dir)
-    write_run_train(output_dir, reinvent_env, reinvent_dir,gpu=False)
-    write_run_sample(output_dir, reinvent_env, reinvent_dir) 
-
   
-  command=['sbatch',output_dir+'/runs.sh'] if training_mode else ['sbatch',output_dir+'/run_sample.sh']
-  subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  dir_path = os.path.dirname(os.path.realpath(__file__)) 
+  reinvent_dir= os.path.join(dir_path,"../../reinventcli")
+  reinvent_env="/home/xiaoh2/.conda/envs/shared"
 
+  write_curriculum_file(jobid, jobname, str(agent), reinvent_dir, output_dir, component_config, gpu=using_gpu)
+  write_sample_file(jobid, jobname,  output_dir)
+  write_run_train(output_dir, reinvent_env, reinvent_dir,gpu=using_gpu)
+  write_run_sample(output_dir, reinvent_env, reinvent_dir) 
   return output_dir
 
-# if __name__=="__main__":
 
-  # jobid=datetime.now().strftime("%d-%m-%Y")
-  # curriculum_name="drd2 activity"
-  # jobname = 'curriculum_{}'.format(curriculum_name)
 
-  # training_mode=False # 'train' or 'sample'
-  # config_filename="component_lib.json"
+def successful_end(id:str, logfile_path: Path, ending_message:str, slurm_output_path: str, check_interval_time: int = 30)->bool:
+  is_end=False
+  has_error=False
   
+  while (not is_end):
+    try:
+      with open (Path(logfile_path,slurm_output_path)) as f: # may throw FileNotFoundError if wait for resources to compute, then no log file exist
+        lines=f.readlines()
+        if lines: #non-empty file
+          last_line=lines[-1]
+          if ending_message in last_line: #Custom message in REINVENT : "Finish training"  or "Finish sampling"
+            logging.info("{}: Finish Current Task".format(id))
+            is_end=True
+          elif "Terminating" in last_line: #Aalto slurm default output when error occurs. "Terminating" 
+            logging.error("{}: Some error occurs during running REINVENT!".format(id))
+            is_end=True
+            has_error=True
+          else: # in training/sampling process
+            logging.info("{}: Executing task!".format(id))
+            sleep(check_interval_time)
+        f.close()
+    except Exception as error:
+      if type(error).__name__=="FileNotFoundError":
+        logging.info('{}: File does not exist yet'.format(id))
+        sleep(check_interval_time)
+      else:
+        logging.debug("{}: {}".format(id,error))
+        break
+  return not has_error
 
-  # dir_path = os.path.dirname(os.path.realpath(__file__))
-  # # agent in the first curriculum is the prior.
-  # agent=os.path.join(dir_path,"../results/{}_{}".format("run_tpsa", "11-04-2022"),"results_2/Agent.ckpt")
 
 
-  # config_path=os.path.join(dir_path,"../component_config")
-  # reinvent_dir= os.path.join(dir_path,"../../reinventcli")
-  # reinvent_env="/home/xiaoh2/.conda/envs/shared"
-  # output_dir=os.path.join(dir_path,"../results/{}".format(jobname))
-  
-  
-  
+def run_workflow(id:str, output_dir:Path, train_ending_message:str="Finish training",train_script:str="runs.sh", sample_ending_message:str="Finish sampling", sample_script:str="run_sample.sh", slurm_output_path: str = "slurm/out_0.out")->bool:
+  if Path(output_dir,slurm_output_path).is_file():
+    #clean old slurm output
+    os.remove(Path(output_dir,slurm_output_path))
+  command=['sbatch',Path(output_dir,train_script)] 
+  subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+  logging.info("{}: Start training".format(id))
+  if successful_end("{} training".format(id), output_dir,train_ending_message,slurm_output_path):
+    command=['sbatch',Path(output_dir,sample_script)]
+    subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    logging.info("{}: Start sampling".format(id))
+    if successful_end("{} sampling".format(id), output_dir,sample_ending_message,slurm_output_path):
+      logging.info("{}: Finish the workflow".format(id))
+      return True
+  else:
+    logging.debug("{}: Failed to finish the wrokflow!".format(id))
+  return False
 
-  # if not os.path.exists(output_dir):
-  #   os.makedirs(output_dir)
-
-  # config=read_component_config(config_path,config_filename)
-  # components_config=config["components"]
 
 
-  # for id,component in enumerate(components_config):
-  #   if component["name"]==curriculum_name:
-  #     write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, component, id) if training_mode else write_sample_file(jobid, jobname,  output_dir,  id)
-  #     break
-  # write_run_train(output_dir, reinvent_env, reinvent_dir,gpu=True) if training_mode else write_run_sample(output_dir, reinvent_env, reinvent_dir)
-
-  
-  # command=['sbatch',output_dir+'/runs.sh'] if training_mode else ['sbatch',output_dir+'/run_sample.sh']
-  # res=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

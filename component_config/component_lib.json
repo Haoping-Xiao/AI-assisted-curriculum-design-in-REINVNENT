@@ -1,6 +1,21 @@
 {
   "name": "components for drd2 activity",
   "components":[
+    { 
+      "component_type": "predictive_property",
+      "name": "activity",
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
+      "smiles": [],
+      "specific_parameters": {
+          "transformation_type": "no_transformation",
+          "scikit": "classification",
+          "transformation": false,
+          "descriptor_type": "ecfp",
+          "size": 2048,
+          "radius": 3
+          }
+    },
     {
       "component_type": "predictive_property",
       "name": "drd2_activity_1",
@@ -37,7 +52,7 @@
     },
     {
       "component_type": "tpsa",
-      "name": "tpsa_1",
+      "name": "tpsa1",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -50,7 +65,7 @@
     },
     {
       "component_type": "tpsa",
-      "name": "tpsa_3",
+      "name": "tpsa3",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -63,7 +78,7 @@
     },
     {
       "component_type": "custom_alerts",
-      "name": "Custom_alerts",              
+      "name": "alerts",              
       "weight": 1,
       "smiles":[                        
         "[*;r8]",
@@ -95,7 +110,7 @@
     },
     {
       "component_type": "number_of_stereo_centers",
-      "name": "number_of_stereo_centers_1",
+      "name": "center",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -108,7 +123,7 @@
     },
     {
       "component_type": "graph_length",
-      "name": "graph_length_1",
+      "name": "graph1",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -121,7 +136,7 @@
     },
     {
       "component_type": "graph_length",
-      "name": "graph_length_2",
+      "name": "graph2",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -134,7 +149,7 @@
     },
     {
       "component_type": "num_hba_lipinski",
-      "name": "num_hba_lipinski_1",
+      "name": "hba1",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -147,7 +162,7 @@
     },
     {
       "component_type": "num_hba_lipinski",
-      "name": "num_hba_lipinski_2",
+      "name": "hba2",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -160,7 +175,7 @@
     },
     {
       "component_type": "num_hba_lipinski",
-      "name": "num_hba_lipinski_3",
+      "name": "hba3",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -176,7 +191,7 @@
     },
     {
       "component_type": "num_hbd_lipinski",
-      "name": "num_hbd_lipinski_1",
+      "name": "hbd1",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -189,7 +204,7 @@
     },
     {
       "component_type": "num_hbd_lipinski",
-      "name": "num_hbd_lipinski_3",
+      "name": "hbd3",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -202,7 +217,7 @@
     },
     {
       "component_type": "num_rotatable_bonds",
-      "name": "num_rotatable_bonds_1",
+      "name": "bond",
       "weight": 1,
       "smiles":[],
       "model_path": null,
@@ -215,7 +230,7 @@
     },
     {
       "component_type": "num_rings",
-      "name": "num_rings_1",
+      "name": "ring1",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -228,7 +243,7 @@
     },
     {
       "component_type": "num_rings",
-      "name": "num_rings_3",
+      "name": "ring3",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -244,7 +259,7 @@
     },
     {
       "component_type": "slogp",
-      "name": "slogp_1",
+      "name": "slogp1",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -260,7 +275,7 @@
     },
     {
       "component_type": "slogp",
-      "name": "slogp_2",
+      "name": "slogp2",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -275,8 +290,24 @@
       }
     },
     {
+      "component_type": "slogp",
+      "name": "slogp3",
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "double_sigmoid",
+        "high": 10,
+        "low": -1,
+        "coef_div": 5,
+        "coef_si": 10,
+        "coef_se": 100,
+        "transformation": true
+      }
+    },
+    {
       "component_type": "molecular_weight",
-      "name": "Molecular_mass_1",
+      "name": "mass1",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -292,7 +323,7 @@
     },
     {
       "component_type": "molecular_weight",
-      "name": "Molecular_mass_4",
+      "name": "mass4",
       "weight": 1,
       "model_path": null,
       "smiles": [],
@@ -305,7 +336,7 @@
     },
     {
       "component_type": "qed_score",
-      "name": "QED",        
+      "name": "qed",        
       "weight": 1,
       "model_path": null,
       "smiles": [],

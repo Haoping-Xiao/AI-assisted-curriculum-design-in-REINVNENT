@@ -1,0 +1,17 @@
+
+{
+  "name": "components for qed component",
+  "components":[
+    {
+      "component_type": "qed_score",
+      "name": "QED",        
+      "weight": 1,
+      "model_path": null,
+      "smiles": [],
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }                
+    }
+  ]
+}

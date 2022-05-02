@@ -26,34 +26,8 @@ def get_scorer(mode):
         'sa':'sa_scorer.json'
     }
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    component_config_path=os.path.join(dir_path,'../component_config')
-    component_config=read_component_config(component_config_path,filename=scorer_config[mode])
-    scorer=Scorer(component_config)
-    return scorer
-
-
-
-
-def get_activity_scorer():
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    component_config_path=os.path.join(dir_path,'../component_config')
-    component_config=read_component_config(component_config_path,filename='drd2_activity_scorer.json')
-    scorer=Scorer(component_config)
-    return scorer
-
-
-def get_qed_scorer():
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    component_config_path=os.path.join(dir_path,'../component_config')
-    component_config=read_component_config(component_config_path,filename='qed_scorer.json')
-    scorer=Scorer(component_config)
-    # scores=scorer.get_score(smiles)
-    return scorer
-
-def get_sa_scorer():
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    component_config_path=os.path.join(dir_path,'../component_config')
-    component_config=read_component_config(component_config_path,filename='sa_scorer.json')
+    component_config_path=os.path.join(dir_path,'../component_config',scorer_config[mode])
+    component_config=read_component_config(component_config_path)
     scorer=Scorer(component_config)
     return scorer
 
@@ -61,11 +35,9 @@ def get_sa_scorer():
 def analyze_curriculum_score(curriculum_name,curriculum_path):
     
     file_path=os.path.dirname(os.path.realpath(__file__))
-    smiles_path=os.path.join(curriculum_path,'results_0')
-    assert os.path.exists(smiles_path)
-    smiles_filename='sampled.csv' 
-    smiles=  read_sample_smiles(smiles_path,smiles_filename) 
-    modes=['qed','sa','activity']
+    smiles_path=os.path.join(curriculum_path,'results_0/sampled.csv')
+    smiles=  read_sample_smiles(smiles_path) 
+    modes=['activity','qed','sa']
     record=[]
     for mode in modes:
         scorer=get_scorer(mode)
@@ -73,14 +45,15 @@ def analyze_curriculum_score(curriculum_name,curriculum_path):
         record.append((score.shape[0], np.max(score), np.min(score), np.mean(score), np.median(score)))
 
     df=pd.DataFrame(record, columns=['number_of_smiles', 'max','min','mean','median'],index=modes)
-    output_path=os.path.join(file_path,'../data/{}_{}_record.csv'.format(curriculum_name,smiles_filename[:-4]))
+    output_path=os.path.join(file_path,'../data/{}_record.csv'.format(curriculum_name))
     df.to_csv(output_path)
 
 
 
 if __name__=='__main__':
-    curriculum_name="curriculum_activity_qed_sa"
-    analyze_curriculum_score(curriculum_name,"/scratch/work/xiaoh2/Thesis/results/run_curriculum_drd2_activity_1/run_curriculum_QED/run_curriculum_sa")
+    # curriculum_name="curriculum_tpsa_activity_qed_sa"
+    curriculum_name="run_qed"
+    analyze_curriculum_score(curriculum_name,"/scratch/work/xiaoh2/Thesis/results/run_qed_26-04-2022")
     # scorer_registry={
     #     'qed':get_qed_scorer(),
     #     'activity':get_activity_scorer(),

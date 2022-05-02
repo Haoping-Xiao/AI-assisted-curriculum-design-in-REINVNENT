@@ -3,5 +3,7 @@ data/
 __pycache__
 scripts/*.sh
 scripts/*.out
+scripts/TODO.md
 .mypy_cache
-
+models/
+unittest/

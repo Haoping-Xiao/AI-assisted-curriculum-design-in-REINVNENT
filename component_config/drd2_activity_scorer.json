@@ -2,7 +2,8 @@
   "name": "custom_sum",
   "parallel": true,
   "parameters": [
-    {"component_type": "predictive_property",
+    { 
+      "component_type": "predictive_property",
       "name": "DRD2",
       "weight": 1,
       "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
