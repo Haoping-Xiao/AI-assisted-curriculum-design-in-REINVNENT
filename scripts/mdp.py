@@ -191,7 +191,7 @@ class MDP():
     max_depth:int=1
     gamma:float=1
 
-    def plan(self, state:State):
+    def plan(self, state:State)->ComponentEnum:
         # give a state, search for best actions
         root = Node(state,None)
         if root.is_terminal:
@@ -200,7 +200,7 @@ class MDP():
         for _ in range(self.n_inter):
         # TODO: sample parameter from distribution
             self.simulate(root,depth=0)
-        return self.get_best_child(root,exploration_value=0)
+        return self.get_best_child(root,exploration_value=0).state.curriculum[-1]
         
 
 
@@ -252,12 +252,6 @@ class MDP():
         return Node(node.state.take_action(human_action),node)
 
 
-    def backpropogate(self, node:Node, reward:float):
-        while node:
-            node.num_visits+=1
-            node.total_reward+=(reward-node.total_reward)/node.num_visits
-            node=node.parent
-
     def get_best_child(self, node:Node, exploration_value:float)->Node:
         best_value = float("-inf")
         best_nodes=[]
@@ -271,7 +265,6 @@ class MDP():
         return np.random.choice(best_nodes)
 
 
-    # def simulate(self,)
     
 
 
