@@ -1,13 +1,12 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List
-from decimal import Decimal
 import pandas as pd
+import numpy as np
 import json
 import os
 from dataclasses import dataclass,field,asdict
 from enums import ComponentEnum
-import logging
 
 @dataclass()
 class Performance():
@@ -30,13 +29,11 @@ class Performance():
     return Performance(round(self.activity*__o.activity,4),round(self.qed*__o.qed,4), round(self.sa*__o.sa,4))
   def copy(self)-> Performance:
     return Performance(self.activity,self.qed,self.sa)
-    
-  def to_csv(self,component_name:List[ComponentEnum],filepath:Path):
-    curriculum='_'.join(list(map(lambda enums: enums.value,component_name)))
+
+  def to_csv(self,jobname:str,filepath:Path):
     data=asdict(self)
-    df=pd.DataFrame(data=data,index=[curriculum])
-    df.to_csv(Path(filepath,"{}_performance.csv".format(curriculum)))
-    logging.info("save {} performance to {}".format(curriculum,filepath))
+    df=pd.DataFrame(data=data,index=[jobname])
+    df.to_csv(Path(filepath,"{}_performance.csv".format(jobname)))
 
 def read_sample_smiles(path:Path)->pd.DataFrame:
     assert Path(path).is_file(), '{} is not exist'.format(path)
@@ -268,29 +265,35 @@ def write_run_sample(output_dir, reinvent_env, reinvent_dir, n_component_configs
 
 def get_component_statistic()->Dict[str,Performance]:
     components_data={}
-    components_data["tpsa_1"]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.9251})
-    components_data["tpsa_3"]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.9023})
-    components_data["Custom_alerts"]=Performance(**{"activity":0.1313,"qed":0.5866,"sa":0.9529})
-    components_data["number_of_stereo_centers_1"]=Performance(**{"activity":0.1497,"qed":0.5904,"sa":0.9261})
-    components_data["graph_length_1"]=Performance(**{"activity":0.1328,"qed":0.5695,"sa":0.9250})
-    components_data["graph_length_2"]=Performance(**{"activity":0.1043,"qed":0.5441,"sa":0.9344})
-    components_data["num_hba_lipinski_1"]=Performance(**{"activity":0.1269,"qed":0.6060,"sa":0.9289})
-    components_data["num_hba_lipinski_2"]=Performance(**{"activity":0.1364,"qed":0.6002,"sa":0.9280})
-    components_data["num_hba_lipinski_3"]=Performance(**{"activity":0.0956,"qed":0.5560,"sa":0.9399})
-    components_data["num_hbd_lipinski_1"]=Performance(**{"activity":0.1493,"qed":0.5871,"sa":0.9322})
-    components_data["num_hbd_lipinski_3"]=Performance(**{"activity":0.1204,"qed":0.5707,"sa":0.9363})
-    components_data["num_rotatable_bonds_1"]=Performance(**{"activity":0.1393,"qed":0.6424,"sa":0.9168})
-    components_data["num_rings_1"]=Performance(**{"activity":0.1207,"qed":0.6395,"sa":0.9397})
-    components_data["num_rings_3"]=Performance(**{"activity":0.1292,"qed":0.4863,"sa":0.9182})
-    components_data["slogp_1"]=Performance(**{"activity":0.1306,"qed":0.6771,"sa":0.9303})
-    components_data["slogp_2"]=Performance(**{"activity":0.1351,"qed":0.6220,"sa":0.9187})
-    components_data["slogp_3"]=Performance(**{"activity":0.1171,"qed":0.5465,"sa":0.9393})
-    components_data["Molecular_mass_4"]=Performance(**{"activity":0.1227,"qed":0.6494,"sa":0.9386})
-    components_data["Molecular_mass_1"]=Performance(**{"activity":0.0989,"qed":0.5884,"sa":0.9544})
+    components_data[ComponentEnum.TPSA1]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.9251})
+    components_data[ComponentEnum.TPSA3]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.9023})
+    components_data[ComponentEnum.ALERT]=Performance(**{"activity":0.1313,"qed":0.5866,"sa":0.9529})
+    components_data[ComponentEnum.CENTER]=Performance(**{"activity":0.1497,"qed":0.5904,"sa":0.9261})
+    components_data[ComponentEnum.GRAPH1]=Performance(**{"activity":0.1328,"qed":0.5695,"sa":0.9250})
+    components_data[ComponentEnum.GRAPH2]=Performance(**{"activity":0.1043,"qed":0.5441,"sa":0.9344})
+    components_data[ComponentEnum.HBA1]=Performance(**{"activity":0.1269,"qed":0.6060,"sa":0.9289})
+    components_data[ComponentEnum.HBA2]=Performance(**{"activity":0.1364,"qed":0.6002,"sa":0.9280})
+    components_data[ComponentEnum.HBA3]=Performance(**{"activity":0.0956,"qed":0.5560,"sa":0.9399})
+    components_data[ComponentEnum.HBD1]=Performance(**{"activity":0.1493,"qed":0.5871,"sa":0.9322})
+    components_data[ComponentEnum.HBD3]=Performance(**{"activity":0.1204,"qed":0.5707,"sa":0.9363})
+    components_data[ComponentEnum.BOND]=Performance(**{"activity":0.1393,"qed":0.6424,"sa":0.9168})
+    components_data[ComponentEnum.RING1]=Performance(**{"activity":0.1207,"qed":0.6395,"sa":0.9397})
+    components_data[ComponentEnum.RING3]=Performance(**{"activity":0.1292,"qed":0.4863,"sa":0.9182})
+    components_data[ComponentEnum.SLOGP1]=Performance(**{"activity":0.1306,"qed":0.6771,"sa":0.9303})
+    components_data[ComponentEnum.SLOGP2]=Performance(**{"activity":0.1351,"qed":0.6220,"sa":0.9187})
+    components_data[ComponentEnum.SLOGP3]=Performance(**{"activity":0.1171,"qed":0.5465,"sa":0.9393})
+    components_data[ComponentEnum.MASS4]=Performance(**{"activity":0.1227,"qed":0.6494,"sa":0.9386})
+    components_data[ComponentEnum.MASS1]=Performance(**{"activity":0.0989,"qed":0.5884,"sa":0.9544})
     return components_data
 
 def get_prior_statistic()->Performance:
     return Performance(**{"activity":0.1044,"qed":0.5599,"sa":0.9311})
+
+def softmax(logit:List[float],beta:float=10):
+    logit=np.array(logit)
+    exp_logit=np.exp(beta*logit)
+    prob=exp_logit/np.sum(exp_logit)
+    return prob
 
 if __name__=='__main__':
     projectPath=os.getcwd()

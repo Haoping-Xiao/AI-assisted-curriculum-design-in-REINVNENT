@@ -1,5 +1,3 @@
-import statistics
-from unicodedata import category
 import pandas as pd
 import numpy as np
 from rdkit.Chem.Descriptors import MolWt,TPSA,MolLogP

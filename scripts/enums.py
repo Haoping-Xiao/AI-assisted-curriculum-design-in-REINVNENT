@@ -1,5 +1,6 @@
-# from dataclasses import dataclass,asdict
+from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 # from typing_extensions import Literal
 
@@ -24,8 +25,23 @@ class ComponentEnum(Enum):
     SLOGP3:str="slogp3"
     MASS1:str="mass1"
     MASS4:str="mass4"
+
+class HypothesisEnum(Enum):
     ACT:str="activity"
     SA:str="sa"
     QED:str="qed"
 
+@dataclass(frozen=True)
+class ProjectConfig():
+    OUT_DIR:Path="/scratch/work/xiaoh2/Thesis/results/curriculum"
+    PRIOR_DIR:Path="/scratch/work/xiaoh2/Thesis/models/augmented.prior"
+    CONFIG_PATH:Path="/scratch/work/xiaoh2/Thesis/component_config/component_lib.json"
+    RESULT_FOLDER:str="results_0"
+    TRAIN_ENDING_MSG:str="Finish training"
+    SAMPLE_ENDING_MSG:str="Finish sampling"
+    TRAIN_SCRIPT:str="runs.sh"
+    SAMPLE_SCRIPT:str="run_sample.sh"
 
+    def __post_init__(self):
+        self.MODEL_PATH=Path(self.RESULT_FOLDER,"Agent.ckpt")
+        self.SAMPLE_PATH=Path(self.RESULT_FOLDER,"sampled.csv")

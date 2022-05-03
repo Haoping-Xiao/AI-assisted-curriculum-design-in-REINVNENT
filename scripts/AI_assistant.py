@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from dataclasses import dataclass,field
 import pandas as pd
 from scorer import get_scorer
 import numpy as np
 from enums import ComponentEnum
-from run_curriculum import execute_curriculum, run_workflow
-from utils import Performance, read_component_config, read_sample_smiles,get_prior_statistic
+from run_curriculum import execute_curriculum, run_job
+from utils import Performance, read_component_config, read_sample_smiles,softmax
 import os
 from multiprocessing import Pool
 import logging
@@ -20,16 +20,20 @@ class AI_assistant():
     config_path:Path="/scratch/work/xiaoh2/Thesis/component_config/component_lib.json"
     curriculum_model_path:Path="results_0/Agent.ckpt"
     curriculum_sample_path:Path="results_0/sampled.csv"
-
-
+    train_ending_message:str="Finish training"
+    sample_ending_message:str="Finish sampling"
+    train_script:str="runs.sh"
+    sample_script:str="run_sample.sh"
+    def __post_init__(self):
+        self.logger=self.get_logger()
     
     def get_logger(self):
-        self.logger=logging.getLogger(__name__)
-
+        logger=logging.getLogger(__name__)
+        return logger
     def setup_curriculum_pool(self)->List[ComponentEnum]:
         pool=[]
         for component in ComponentEnum:
-            if component not in self.hypothesis_classes:
+            if component not in (self.hypothesis_classes + self.curriculum):
                 pool.append(component)
         return pool
 
@@ -44,12 +48,12 @@ class AI_assistant():
     def setup_curriculum(self,component_name:ComponentEnum,jobname:str)->Path:
         # train a component on top of a given prior agent, then train inferred scoring function
         if len(self.curriculum):
-            prior_agent=Path(self.output_dir ,"_".join(self.curriculum),self.curriculum_model_path)
+            prior_agent=Path(self.output_dir,self.get_jobname(),self.curriculum_model_path)
         else:
             prior_agent=Path(self.prior_path)
         component_config=self.setup_component(component_name,weight=1) # 1 is a default value
         curriculum_path=execute_curriculum(jobname,component_config,prior_agent,self.output_dir)
-        success=run_workflow(id=jobname,output_dir=curriculum_path)
+        success=run_job(jobname+" training",curriculum_path,self.train_ending_message,self.train_script)
         if not success:
             raise Exception("some error occurs in set up curriculum") 
         return curriculum_path
@@ -63,15 +67,20 @@ class AI_assistant():
         return components
     
     def setup_production(self,component_name:ComponentEnum,curriculum_path:Path)->Path:
-        evaluated_curriclum=self.curriculum+[component_name] # self.curriculum remains the same in the evaluation stage, append it only when human make a decision.
-        id='_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))+" production"
+         # self.curriculum remains the same in the evaluation stage, append it only when human make a decision.
+        jobname=self.get_jobname(component_name)+" production"
 
         prior_agent=Path(curriculum_path,self.curriculum_model_path)
         component_config=self.infer_scoring_function()
         production_path=execute_curriculum(self.hypothesis_classes,component_config,prior_agent,curriculum_path,production_mode=True)
-        success=run_workflow(id=id,output_dir=production_path)
+
+        success=run_job(jobname+" training",production_path,self.train_ending_message,self.train_script)
         if not success:
-            raise Exception("some error occurs in set up production") 
+            raise Exception("some error occurs in set up production training") 
+        
+        success=run_job(jobname+" sampling",production_path,self.sample_ending_message,self.sample_script)
+        if not success:
+            raise Exception("some error occurs in set up production sampling") 
         return production_path
 
     
@@ -90,25 +99,32 @@ class AI_assistant():
             os.makedirs(path)
         except FileExistsError:
             pass
-        evaluated_curriclum=self.curriculum+[component_name]
-        performance.to_csv(evaluated_curriclum,path)
+        jobname=self.get_jobname(component_name)
+        performance.to_csv(jobname,path)
         
-    def get_jobname(self, component_name:List[ComponentEnum]):
-        evaluated_curriclum=self.curriculum+[component_name]
+    def get_jobname(self, component_name:Optional[ComponentEnum]=None):
+        evaluated_curriclum=self.curriculum+[component_name] if component_name else self.curriculum
         return '_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
+        # return '_'.join(evaluated_curriclum)
 
-    def evaluate_component(self,component_name:ComponentEnum):
+    def evaluate_component(self,component_name:ComponentEnum)->float:
         try:
             jobname=self.get_jobname(component_name)
             curriculum_path=Path(self.output_dir,jobname)
-            if curriculum_path.exists():
-                curriculum_path=self.setup_curriculum(component_name,jobname)
 
+            if not curriculum_path.exists():
+                try:
+                    curriculum_path=self.setup_curriculum(component_name,jobname)
+                except Exception as e:
+                    raise Exception("bugs in setup curriculum: {}".format(e))
 
             production_path=Path(curriculum_path,"production")
+            self.logger.info("production_path {}".format(production_path))
             if not production_path.exists():
-                production_path=self.setup_production(component_name,curriculum_path)
-
+                try:
+                    production_path=self.setup_production(component_name,curriculum_path)
+                except Exception as e:
+                    raise Exception("bugs in setup production: {}".format(e))
             smiles_path=Path(production_path,self.curriculum_sample_path)
             smiles=  read_sample_smiles(smiles_path) 
             weighted_performance:Performance=self.infer_performance(smiles)
@@ -119,28 +135,30 @@ class AI_assistant():
             return np.nan
 
     
+    
     def recommend_component(self,current_performance:Performance)->str:
         component_pool=self.setup_curriculum_pool()
         performance={}
-        best_component=None
+        advice=None
         with Pool(len(component_pool)) as p:
             res=p.map(self.evaluate_component,component_pool)
-            
-        for i,component_name in enumerate(component_pool):
-            #check if it is better
-            if res[i]>current_performance.sum:
-                performance[component_name.value]=res[i]
+        self.logger.info("res is {}".format((res)))
+        filename=self.get_jobname() if len(self.curriculum) else "prior"
+        with open("{}.txt".format(str(Path(self.output_dir,"_performance",filename))),"w") as f:
+            for i,component_name in enumerate(component_pool):
+                f.write("{} {}\n".format(component_name.value,res[i]))
+                if res[i]>current_performance.sum:#check if it is better
+                    performance[component_name]=res[i]
+            f.close()
         if performance:
-            sorted_component=sorted(performance, key=performance.get)
-            evaluated_curriclum=self.curriculum if len(self.curriculum) else ["prior"]
-            filename='_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
-            with open("{}.txt".format(Path(self.output_dir,"_performance",filename)),"w") as f:
-                for component in sorted_component:
-                    f.write("{} {}\n".format(component,performance[component]))
-                f.close()
-            #TODO: softmax decision
-            best_component=sorted_component[-1]
-        return best_component        
+            prob=softmax(list(performance.values()),beta=100)
+            advice=np.random.choice(list(performance.keys()),p=prob)
+        # if performance:
+        #     sorted_component=sorted(performance, key=performance.get)
+        #     #TODO: softmax decision
+        #     best_component=sorted_component[-1]
+        self.logger.info("AI recommends {}".format(advice))
+        return advice        
         
 
 # hypothesis_classes=['activity','qed','sa']
@@ -149,8 +167,8 @@ path="/scratch/work/xiaoh2/Thesis/results/sampled.csv"
 smiles= read_sample_smiles(path)
 
 
-current_performance=get_prior_statistic()
-ai=AI_assistant()
-# print(ai.infer_performance(smiles))
-best=ai.recommend_component(current_performance)
-print(best)
+# current_performance=get_prior_statistic()
+# ai=AI_assistant()
+# # print(ai.infer_performance(smiles))
+# best=ai.recommend_component(current_performance)
+# print(best)
