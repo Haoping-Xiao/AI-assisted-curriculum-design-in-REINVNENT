@@ -263,7 +263,7 @@ def write_run_sample(output_dir, reinvent_env, reinvent_dir, n_component_configs
       f.write('conf_filename="{}/sample_config_$SLURM_ARRAY_TASK_ID.json"\n'.format(output_dir))
       f.write('srun python {}/input.py $conf_filename\n'.format(reinvent_dir))
 
-def get_component_statistic()->Dict[str,Performance]:
+def get_component_statistic()->Dict[ComponentEnum,Performance]:
     components_data={}
     components_data[ComponentEnum.TPSA1]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.9251})
     components_data[ComponentEnum.TPSA3]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.9023})

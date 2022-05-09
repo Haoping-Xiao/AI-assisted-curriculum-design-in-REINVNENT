@@ -31,11 +31,12 @@ class HypothesisEnum(Enum):
     SA:str="sa"
     QED:str="qed"
 
-@dataclass(frozen=True)
+@dataclass()
 class ProjectConfig():
     OUT_DIR:Path="/scratch/work/xiaoh2/Thesis/results/curriculum"
     PRIOR_DIR:Path="/scratch/work/xiaoh2/Thesis/models/augmented.prior"
     CONFIG_PATH:Path="/scratch/work/xiaoh2/Thesis/component_config/component_lib.json"
+    STAN_PATH:Path="/scratch/work/xiaoh2/Thesis/scripts/user_model.stan"
     RESULT_FOLDER:str="results_0"
     TRAIN_ENDING_MSG:str="Finish training"
     SAMPLE_ENDING_MSG:str="Finish sampling"
