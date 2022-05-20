@@ -1,0 +1,18 @@
+
+
+{
+  "name": "custom_sum",
+  "parallel": false,
+  "parameters": [
+    {
+      "component_type": "sa_score",
+      "name": "sa",        
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/sa.pkl",
+      "smiles": [],
+      "specific_parameters": {
+        "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility"
+      }             
+    }
+  ]
+}

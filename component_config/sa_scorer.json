@@ -8,9 +8,10 @@
       "component_type": "rdkit_sa_score",
       "name": "sa",        
       "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
+      "model_path": null,
       "smiles": [],
       "specific_parameters": {
+        "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
         "transformation_type": "reverse_sigmoid",
         "high": 10,
         "low": 1,

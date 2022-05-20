@@ -347,7 +347,7 @@
     },
     {
       "component_type": "rdkit_sa_score",
-      "name": "sa",        
+      "name": "rdkit_sa",        
       "weight": 1,
       "model_path": "/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
       "smiles": [],
@@ -357,6 +357,16 @@
         "low": 1,
         "k":0.5,
         "transformation": true
+      }             
+    },
+    {
+      "component_type": "sa_score",
+      "name": "sa",        
+      "weight": 1,
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/sa.pkl",
+      "smiles": [],
+      "specific_parameters": {
+        "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility"
       }             
     }
 
