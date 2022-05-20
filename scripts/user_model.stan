@@ -22,9 +22,9 @@ data{
   matrix[K, J] prior_qed;
   matrix[K, J] prior_sa;
   
-  matrix<lower=0,upper=1>[K, J] observed_activity; // observed activity scores
-  matrix<lower=0,upper=1>[K, J] observed_qed; // observed qed scores
-  matrix<lower=0,upper=1>[K, J] observed_sa; // observed sa scores
+  matrix[K, J] observed_activity; // observed activity scores
+  matrix[K, J] observed_qed; // observed qed scores
+  matrix[K, J] observed_sa; // observed sa scores
   
   int prior_choice[K];
   int <lower=0> advice [K];
@@ -32,12 +32,6 @@ data{
   
 }
 
-// transformed data{
-//   int prior_choice[K];
-//   for (i in 1:K){
-//     prior_choice[i] =categorical_rng(to_vector(prior_prob[i]));
-//   }
-// }
 
 
 parameters{
@@ -66,12 +60,15 @@ model{
   for (i in 1:K){
     prior_scores=w[1]* prior_activity[i]+ w[2]*prior_qed[i] + w[3]* prior_sa[i];
     prior_prob[i]=to_row_vector(softmax(to_vector(prior_scores*beta1)));
+    for (j in 1:J){
+      if(prior_prob[i][j]==0){
+        prior_prob[i][j]=0.0000001;
+      }
+    }
     prior_choice[i] ~ categorical(to_vector(prior_prob[i]));
-    // prior_choice[i] =choice_rng(prior_prob[i]);
-    // prior_choice[i] =categorical_rng(to_vector(prior_prob[i]));
     observed_scores= w[1]*observed_activity[i]+w[2]*observed_qed[i]+ w[3]*observed_sa[i];
     advantage[i]=observed_scores[advice[i]]- observed_scores[prior_choice[i]];
-    decision~bernoulli_logit(beta2*advantage[i]);
+    decision[i]~bernoulli_logit(beta2*advantage[i]);
   }
 
 }
