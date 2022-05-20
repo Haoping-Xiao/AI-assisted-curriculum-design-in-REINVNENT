@@ -14,7 +14,7 @@ import numpy as np
 from scorer import get_scorer
 
 
-logging.basicConfig(format=' %(levelname)s %(asctime)s %(name)s %(message)s',level = logging.INFO)
+logging.basicConfig(format=' %(levelname)s %(asctime)s %(name)s %(message)s',level = logging.DEBUG)
 
 def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,output_dir:Path, using_gpu:Optional[bool]=True ,production_mode:Optional[bool]=False)->Path:
   # jobname = '_'.join(list(map(lambda enums: enums.value,curriculum_name)))
@@ -39,7 +39,7 @@ def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,outp
 
 
 
-def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_output_path: str, check_interval_time: int = 30)->bool:
+def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_output_path: str, check_interval_time: int = 60)->bool:
   is_end=False
   has_error=False
   

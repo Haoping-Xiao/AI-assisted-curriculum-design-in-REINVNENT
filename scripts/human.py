@@ -12,7 +12,10 @@ from run_curriculum import CurriculumBroker
 from mdp import Node, State, Action
 from enums import ComponentEnum,HypothesisEnum,ProjectConfig
 from pathlib import Path
+from stan_model import SampleParameter
 import logging
+from multiprocessing import Pool
+from datetime import datetime
 # def first_curriculum(curriculum_name:List)->str:
 #   # agent="/scratch/work/xiaoh2/Thesis/scripts/../../reinventcli/data/augmented.prior"
 #   agent="/scratch/work/xiaoh2/Thesis/results/run_tpsa_11-04-2022/results_2/Agent.ckpt"
@@ -32,13 +35,15 @@ import logging
 @dataclass
 class Human():
   weights: Performance=Performance(**{HypothesisEnum.ACT.value:0.5,HypothesisEnum.QED.value:0.3,HypothesisEnum.SA.value:0.2})
-  bias: List[float]=[2,20]
+  bias: List[float]=field(default_factory=lambda:[2,20])
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
   prior_data:Performance=field(default_factory=get_prior_statistic)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-  max_curriculum_num:int=2
+  max_curriculum_num:int=10
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
+  __human_performance: List[float]=field(default_factory=lambda:[])
+  __human_ai_performance: List[float]=field(default_factory=lambda:[])
   def __post_init__(self):
     self.__config=ProjectConfig()
     self.ai_output_dir=self.__config.OUT_DIR
@@ -47,7 +52,7 @@ class Human():
     # self.current_performance= self.prior_data.copy()
     self.ai=self.get_AI_assistant()
     self.broker=CurriculumBroker(weights=self.weights, curriculum=self.curriculum, hypothesis_classes=self.hypothesis_classes)
-
+    
   def get_logger(self)->logging.Logger:
     logger=logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
@@ -55,7 +60,7 @@ class Human():
     return logger
 
   def get_AI_assistant(self)->AI:
-    ai=AI(current_performance=self.current_performance)
+    ai=AI(current_performance=self.current_performance,curriculum=self.curriculum, prior_choice=[12, 1, 17, 4, 11],advice=[2, 10, 2, 14, 1])
     return ai
 
   def get_performance(self,smiles:pd.DataFrame)->Performance:
@@ -75,9 +80,16 @@ class Human():
   def evaluate_components(self)->Dict[ComponentEnum,float]:
     pool=self.setup_curriculum_pool()
     evaluation={}
+    
     for component_name in pool:
-      weighted_performance=self.weights*(self.components_data[component_name]-self.prior_data)  # weighted normalized performance
-      evaluation[component_name]=weighted_performance.sum
+      try:
+        weighted_performance=self.weights*(self.components_data[component_name]-self.prior_data)  # weighted normalized performance
+        evaluation[component_name]=weighted_performance.sum
+      except Exception as e:
+        self.logger.info(e)
+        self.logger.info("weights {}".format(self.weights))
+        self.logger.info("data {}".format(self.components_data[component_name]))
+        self.logger.info("prior data {}".format(self.prior_data))
     return evaluation
   
 
@@ -114,7 +126,7 @@ class Human():
     performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])
     return performance
 
-  def evaluate_advice(self, human_choice:ComponentEnum, advice:Union[ComponentEnum,None])->ComponentEnum:
+  def evaluate_advice(self, human_choice:ComponentEnum, advice:Union[ComponentEnum,None], save:Optional[bool]=False)->ComponentEnum:
     # TODO: if update prior statistic
     p1=self.read_component_performance(human_choice)
     p2=self.read_component_performance(advice) if advice else self.current_performance
@@ -124,14 +136,22 @@ class Human():
 
     prob=np.exp(self.bias[1]*(p2.sum-p1.sum))/(1+np.exp(self.bias[1]*(p2.sum-p1.sum)))
     
-    self.logger.info("prob swtich from {} to {} :{}".format(human_choice,advice,prob))
-
     choice=np.random.choice([human_choice,advice],p=[1-prob,prob])
-    self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
-    # update current performance
+    
+    # update current performance, note, this is not shallow copy. has to inform ai
     self.current_performance=p1 if choice==human_choice else p2
+
     # inform AI
     self.ai.current_performance=self.current_performance
+
+    if save:
+      self.logger.info("prob swtich from {} to {} :{}".format(human_choice,advice,prob))
+      self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
+      self.logger.info("current_performance{}".format(self.current_performance))
+      self.logger.info("save comparison results after human make decision")
+      self.__human_performance.append(p1.sum)
+      self.__human_ai_performance.append(self.current_performance.sum)
+
     return choice
 
 
@@ -143,9 +163,11 @@ class Human():
     if not advice:
       advice=self.ai.plan()
       #inform AI
-      self.ai.prior_choice.append(self.ai.component_to_int(human_choice))
+      self.ai.prior_choice.append(self.ai.sampler.component_to_int(human_choice))
 
-    decision=self.evaluate_advice(human_choice,advice)
+      decision=self.evaluate_advice(human_choice,advice,save=True)
+    else: #served as user model in AI
+      decision=self.evaluate_advice(human_choice,advice,save=False)
     
     return decision
 
@@ -161,17 +183,24 @@ class Human():
     while evaluation and count<self.max_curriculum_num: # there is no component in pool or human decide to terminate
       decision=self.make_decision(evaluation)
       #inform AI
-      self.ai.curriculum.append(decision)
+      # self.ai.curriculum.append(decision)
       if decision:
+        # this is shallow copy, no need to inform ai
         self.curriculum.append(decision)
       else:
         break
       evaluation=self.evaluate_components()
       count+=1
-      
+    self.save_performance()
+
     return self.curriculum
     
-  
+  def save_performance(self):
+    data={"human":self.__human_performance,"human_ai":self.__human_ai_performance}
+    df=pd.DataFrame(data=data)
+    performance_path=Path(self.__config.OUT_DIR,"_performance/result_{}.csv".format(datetime.now().strftime("%d-%m-%Y")))
+    df.to_csv(performance_path)
+    
 
 
 
@@ -182,7 +211,7 @@ class AI():
     prior_choice: List[int]=field(default_factory=lambda:[])
     advice: List[int]=field(default_factory=lambda:[])
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-    n_inter:int=100
+    n_inter:int=1000
     hypothesis_classes: List[HypothesisEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
     exploration_constant:float=1/np.sqrt(2)
     max_depth:int=1
@@ -191,170 +220,59 @@ class AI():
     def __post_init__(self):
         self.logger=logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.__config=ProjectConfig()
-
-        prior=get_component_statistic()
-        self.pri_activity=[]
-        self.pri_qed=[]
-        self.pri_sa=[]
-
-        for component_name in ComponentEnum:
-          p=prior[component_name]
-          self.pri_activity.append(p.activity)
-          self.pri_qed.append(p.qed)
-          self.pri_sa.append(p.sa)
-
-
-    def get_prior_parameters(self)->Tuple[Performance,List[float]]:
-        w=np.random.normal(loc=0.5,scale=0.15,size=3)
-        w=w/np.sum(w)
-        bias1=np.random.uniform(low=1,high=4)
-        bias2=np.random.uniform(low=10,high=40)
-        w=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]})
-        bias:List[float]=[bias1,bias2]
-        self.logger.info("get prior parameters w {} bias {}".format(w, bias))
-        return w, bias
-        
-    
-    def get_observed_data(self)->Tuple(List[List[float]],List[List[float]],List[List[float]]):
-        observed_activity=[]
-        observed_qed=[]
-        observed_sa=[]
-
-        for k in range(len(self.curriculum)):
-          ob_a=[]
-          ob_q=[]
-          ob_s=[]
-          for component_name in ComponentEnum:
-            curriculum_in_k_round=self.curriculum[:k]
-            # the component name has been included. AI doesn't have to observe it. 
-            if component_name not in curriculum_in_k_round:
-              jobname='_'.join(list(map(lambda enums: enums.value,curriculum_in_k_round+[component_name])))
-              performance=self.read_component_performance(jobname)
-              ob_a.append(performance.activity)
-              ob_q.append(performance.qed)
-              ob_s.append(performance.sa)
-            else:
-              #if the component has been introduce. the create a random big negative number, so softmax will reduce the prob to be chosen.
-              ob_a.append(-10000)
-              ob_q.append(-10000)
-              ob_s.append(-10000)
-          observed_activity.append(ob_a)
-          observed_qed.append(ob_q)
-          observed_sa.append(ob_s)
-        return (observed_activity,observed_qed,observed_sa)
-
-    def component_to_int(self,component_name:ComponentEnum)->int:
-        components=list(ComponentEnum)
-        return components.index(component_name)+1
-
-    def prepare_data(self)->Dict:
-        K=len(self.curriculum)
-        J=len(ComponentEnum)
-        
-        decision=[]
-        prior_activity=[]
-        prior_qed=[]
-        prior_sa=[]
-
-        for k in range(K):
-          if self.component_to_int(self.curriculum[k])==self.prior_choice[k]:
-            decision.append(0)
-          else:
-            decision.append(1)
-          
-          if len(self.prior_choice)>1:
-            self.pri_activity[self.prior_choice[k-1]]=-10000
-            self.pri_qed[self.prior_choice[k-1]]=-10000
-            self.pri_sa[self.prior_choice[k-1]]=-10000
-
-          prior_activity.append(deepcopy(self.pri_activity))
-          prior_qed.append(deepcopy(self.pri_qed))
-          prior_sa.append(deepcopy(self.pri_sa))
-
-
-
-        observed_activity,observed_qed,observed_sa=self.get_observed_data()
-
-        self.logger.info("curriculum {}".format(self.curriculum))
-        self.logger.info("advice {}".format(self.advice))
-        self.logger.info("prior_choice {}".format(self.prior_choice))
-        self.logger.info("decision {}".format(decision))
-        self.logger.info("prior_activity {}".format(prior_activity))
-        self.logger.info("prior_qed {}".format(prior_qed))
-        self.logger.info("prior_sa {}".format(prior_sa))
-        self.logger.info("observed_activity {}".format(observed_activity))
-        self.logger.info("observed_qed {}".format(observed_qed))
-        self.logger.info("observed_sa {}".format(observed_sa))
-        data={"J":J,
-              "K":K,
-              "prior_activity":prior_activity,
-              "prior_qed":prior_qed,
-              "prior_sa":prior_sa,
-              "observed_activity":observed_activity,
-              "observed_qed":observed_qed,
-              "observed_sa":observed_sa,
-              "prior_choice":self.prior_choice,
-              "advice":self.advice,
-              "decision":decision}
-        return data
-    
-    def get_parameter(self)->Tuple[Performance,List[float]]:
-
-        if len(self.advice)==0:
-          return self.get_prior_parameters()
-        
-        data=self.prepare_data()
-        model=pystan.StanModel(file=self.__config.STAN_PATH)
-        res=model.sampling(data=data).extract()
-        weights=res["w"] 
-        beta1=res["beta1"]
-        beta2=res["beta2"]
-
-        mean_weights=np.mean(weights,axis=0)
-        mean_beta1=np.mean(beta1)
-        mean_beta2=np.mean(beta2)
-        w:Performance=Performance(**{HypothesisEnum.ACT.value:mean_weights[0],HypothesisEnum.QED.value:mean_weights[1],HypothesisEnum.SA.value:mean_weights[2]})
-        bias:List[float]=[mean_beta1,mean_beta2]
-        self.logger.info("sample posterior parameters w {} bias {}".format(w, bias))
-        return w, bias
+        self.sampler=SampleParameter(curriculum=self.curriculum,prior_choice=self.prior_choice,advice=self.advice)
 
     
     def plan(self)->ComponentEnum:
         """
           give a state, search for best actions
         """
-        
-        self.inferred_weights,self.inferred_bias=self.get_parameter()
+        self.check_sampler()
+
+        if len(self.advice)==0:
+          distribution=None
+        else:
+          distribution= self.sampler.get_parameter_distribution()
+          self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
+          self.logger.info("std: w1 {} w2 {} w3 {}".format(distribution[3][0],distribution[3][1],distribution[3][2]))
+          self.logger.info("bias1 {} std {}".format(distribution[1],distribution[4]))
+          self.logger.info("bias2 {} std {}".format(distribution[2],distribution[5]))
+
+        self.inferred_weights,self.inferred_bias=self.sampler.get_parameters(distribution)
 
         state=State(weights=self.inferred_weights,curriculum=self.curriculum)
 
-
+        root = Node(state=state,parent=None,actions=state.get_possible_actions())
+            
         # create state space
         self.state_space=self.__get_state_space(root_state=state)
+
+        if root.is_terminal:
+          self.logger.info("root node is a terminal node")
+          return None
         
-        
-        for _ in range(self.n_inter):
-            weights,bias=self.get_parameter()
-            # trick: update weights in state space due to shallow copy
-            self.inferred_weights.activity=weights.activity
-            self.inferred_weights.qed=weights.qed
-            self.inferred_weights.sa=weights.sa
-            self.inferred_bias[0]=bias[0]
-            self.inferred_bias[1]=bias[1]
+        for i in range(self.n_inter):
+            if i>0:
+              weights,bias=self.sampler.get_parameters(distribution)
+              # trick: update weights in state space due to shallow copy
+              self.inferred_weights.activity=weights.activity
+              self.inferred_weights.qed=weights.qed
+              self.inferred_weights.sa=weights.sa
+              self.inferred_bias[0]=bias[0]
+              self.inferred_bias[1]=bias[1]
 
             
-            root = Node(state=state,parent=None,actions=state.get_possible_actions())
-            if root.is_terminal:
-              self.logger.info("root node is a terminal node")
-              return None
-
             self.simulate(root,depth=0)
         self.check_node(root)
         best_advice=self.get_best_action(root,exploration_value=0).name
-        self.advice.append(self.component_to_int(best_advice))
+        self.advice.append(self.sampler.component_to_int(best_advice))
         return best_advice
-        
+    
+
+    def check_sampler(self):
+      self.logger.info("sampler curriculum: {}".format(self.sampler.curriculum))
+      self.logger.info("sampler prior_choice: {}".format(self.sampler.prior_choice))
+      self.logger.info("sampler advice: {}".format(self.sampler.advice))
     def check_space(self):
         for state_pair in self.state_space.values():
           states=state_pair.values()
@@ -386,9 +304,6 @@ class AI():
         action.total_reward+=(q-action.total_reward)/action.num_visits
 
 
-
-
-
     def get_best_action(self, node:Node, exploration_value: float)->Action:
         best_value = float("-inf")
         best_actions=[]
@@ -407,17 +322,17 @@ class AI():
         return np.random.choice(best_actions)
 
  
-
-    
-
     def transition(self,node:Node, action:ComponentEnum, depth:int)->Node:
         #AI's action for human is advice
         self.logger.info("simulate transition advice {}".format(action.name))
+        # user model, know the hypothesis class but not the parameters.
+        # user model will not use AI. 
+        # user model is used to infer the next state.
         user_model=Human(weights=self.inferred_weights,bias=self.inferred_bias, curriculum=self.curriculum, current_performance=self.current_performance)
         evaluation=user_model.evaluate_components()
-        human_action=user_model.make_decision(evaluation,action.name)
-        node.state.take_action(human_action)
-        name=self.__get_state_name(node.state.curriculum+[human_action])
+        inferred_human_action=user_model.make_decision(evaluation,action.name)
+        node.state.take_action(inferred_human_action)
+        name=self.__get_state_name(node.state.curriculum+[inferred_human_action])
         state=self.state_space[depth+1][name]
         
         return Node(state=state,parent=node,actions=state.get_possible_actions())
@@ -431,7 +346,6 @@ class AI():
       root_name=self.__get_state_name(root_state.curriculum)
       state_space:Dict[int,Dict[str,State]]={0:{root_name:root_state}}
       
-
       for depth in range(self.max_depth):
         current_states=state_space[depth].values()
         state_space[depth+1]={}
@@ -441,32 +355,21 @@ class AI():
             next_state=State(weights=state.weights,curriculum=state.curriculum+[action.name])
             next_state_name=self.__get_state_name(next_state.curriculum)
             state_space[depth+1][next_state_name]=next_state
+          # take action in advance here for parallel efficicy
+          # MCTS will only take one action at each time and thus not able to run jobs in parallel
+          actions_name=list(map(lambda action:action.name, actions))
+          with Pool(len(actions)) as p:
+            p.map(state.take_action,actions_name)
+          
       return state_space
 
-    # def __update_weights(self,state_space:Dict[int,Dict[str,State]])->Node:
-    #   root=None
-    #   for depth,state_pair in state_space.items():
-    #     for state in state_pair.values():
-    #       state.weights=self.inferred_weights
-
-    #   pass
-
-    def read_component_performance(self, jobname:str)->Performance:
-      performance_path=Path(self.__config.OUT_DIR,"_performance","{}_performance.csv".format(jobname))
-      df=pd.read_csv(performance_path,index_col=0)
-      #TODO: save non-weighted performance
-      performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])
-      return performance
 
 
 if __name__=="__main__":
   
-  # components_data=get_component_statistic()
-  # prior_data=get_prior_statistic()
-  # human=Human(components_data=components_data,prior_data=prior_data)
-  # print(human.create_curriculum())
 
-  human=Human()
+  curriculum=[ComponentEnum.BOND,ComponentEnum.HBD1, ComponentEnum.TPSA3, ComponentEnum.CENTER, ComponentEnum.TPSA1]
+  human=Human(curriculum=curriculum)
   res=human.create_curriculum()
   print("res is {}".format(res))
   # output_dir=first_curriculum(["drd2_activity_1"])

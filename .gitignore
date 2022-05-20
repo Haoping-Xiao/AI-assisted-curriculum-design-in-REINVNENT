@@ -7,3 +7,6 @@ scripts/TODO.md
 .mypy_cache
 models/
 unittest/
+scripts/*copy*
+scripts/stan_model.py
+scripts/deprecated
