@@ -229,7 +229,7 @@ def write_run_train(output_dir, reinvent_env, reinvent_dir, n_component_configs=
       pass
   with open(runfile, 'w') as f:
       f.write("#!/bin/bash -l \n")
-      f.write("#SBATCH --cpus-per-task=4 --gres=gpu:1\n") if gpu else f.write("#SBATCH --cpus-per-task=4 \n")
+      f.write("#SBATCH --cpus-per-task=4 --gres=gpu:1 --exclude=gpu[11-17]\n") if gpu else f.write("#SBATCH --cpus-per-task=4 \n")
       f.write('#SBATCH --time=02:00:00 --mem-per-cpu=4000\n')
       f.write('#SBATCH -o {}/slurm/out_%a.out\n'.format(output_dir))
       f.write('#SBATCH --array=0-{}\n'.format(n_component_configs))
@@ -265,29 +265,52 @@ def write_run_sample(output_dir, reinvent_env, reinvent_dir, n_component_configs
 
 def get_component_statistic()->Dict[ComponentEnum,Performance]:
     components_data={}
-    components_data[ComponentEnum.TPSA1]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.9251})
-    components_data[ComponentEnum.TPSA3]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.9023})
-    components_data[ComponentEnum.ALERT]=Performance(**{"activity":0.1313,"qed":0.5866,"sa":0.9529})
-    components_data[ComponentEnum.CENTER]=Performance(**{"activity":0.1497,"qed":0.5904,"sa":0.9261})
-    components_data[ComponentEnum.GRAPH1]=Performance(**{"activity":0.1328,"qed":0.5695,"sa":0.9250})
-    components_data[ComponentEnum.GRAPH2]=Performance(**{"activity":0.1043,"qed":0.5441,"sa":0.9344})
-    components_data[ComponentEnum.HBA1]=Performance(**{"activity":0.1269,"qed":0.6060,"sa":0.9289})
-    components_data[ComponentEnum.HBA2]=Performance(**{"activity":0.1364,"qed":0.6002,"sa":0.9280})
-    components_data[ComponentEnum.HBA3]=Performance(**{"activity":0.0956,"qed":0.5560,"sa":0.9399})
-    components_data[ComponentEnum.HBD1]=Performance(**{"activity":0.1493,"qed":0.5871,"sa":0.9322})
-    components_data[ComponentEnum.HBD3]=Performance(**{"activity":0.1204,"qed":0.5707,"sa":0.9363})
-    components_data[ComponentEnum.BOND]=Performance(**{"activity":0.1393,"qed":0.6424,"sa":0.9168})
-    components_data[ComponentEnum.RING1]=Performance(**{"activity":0.1207,"qed":0.6395,"sa":0.9397})
-    components_data[ComponentEnum.RING3]=Performance(**{"activity":0.1292,"qed":0.4863,"sa":0.9182})
-    components_data[ComponentEnum.SLOGP1]=Performance(**{"activity":0.1306,"qed":0.6771,"sa":0.9303})
-    components_data[ComponentEnum.SLOGP2]=Performance(**{"activity":0.1351,"qed":0.6220,"sa":0.9187})
-    components_data[ComponentEnum.SLOGP3]=Performance(**{"activity":0.1171,"qed":0.5465,"sa":0.9393})
-    components_data[ComponentEnum.MASS4]=Performance(**{"activity":0.1227,"qed":0.6494,"sa":0.9386})
-    components_data[ComponentEnum.MASS1]=Performance(**{"activity":0.0989,"qed":0.5884,"sa":0.9544})
+    components_data[ComponentEnum.TPSA1]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.7265})
+    components_data[ComponentEnum.TPSA3]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.7505})
+    components_data[ComponentEnum.ALERT]=Performance(**{"activity":0.1313,"qed":0.5866,"sa":0.7998})
+    components_data[ComponentEnum.CENTER]=Performance(**{"activity":0.1497,"qed":0.5904,"sa":0.7276})
+    components_data[ComponentEnum.GRAPH1]=Performance(**{"activity":0.1328,"qed":0.5695,"sa":0.7117})
+    components_data[ComponentEnum.GRAPH2]=Performance(**{"activity":0.1043,"qed":0.5441,"sa":0.7241})
+    components_data[ComponentEnum.HBA1]=Performance(**{"activity":0.1269,"qed":0.6060,"sa":0.7381})
+    components_data[ComponentEnum.HBA2]=Performance(**{"activity":0.1364,"qed":0.6002,"sa":0.7459})
+    components_data[ComponentEnum.HBA3]=Performance(**{"activity":0.0956,"qed":0.5560,"sa":0.7513})
+    components_data[ComponentEnum.HBD1]=Performance(**{"activity":0.1493,"qed":0.5871,"sa":0.7536})
+    components_data[ComponentEnum.HBD3]=Performance(**{"activity":0.1204,"qed":0.5707,"sa":0.7499})
+    components_data[ComponentEnum.BOND]=Performance(**{"activity":0.1393,"qed":0.6424,"sa":0.7165})
+    components_data[ComponentEnum.RING1]=Performance(**{"activity":0.1207,"qed":0.6395,"sa":0.7716})
+    components_data[ComponentEnum.RING3]=Performance(**{"activity":0.1292,"qed":0.4863,"sa":0.7087})
+    components_data[ComponentEnum.SLOGP1]=Performance(**{"activity":0.1306,"qed":0.6771,"sa":0.7634})
+    components_data[ComponentEnum.SLOGP2]=Performance(**{"activity":0.1351,"qed":0.6220,"sa":0.7344})
+    components_data[ComponentEnum.SLOGP3]=Performance(**{"activity":0.1171,"qed":0.5465,"sa":0.7525})
+    components_data[ComponentEnum.MASS4]=Performance(**{"activity":0.1227,"qed":0.6494,"sa":0.7630})
+    components_data[ComponentEnum.MASS1]=Performance(**{"activity":0.0989,"qed":0.5884,"sa":0.7953})
     return components_data
 
+# def get_component_statistic()->Dict[ComponentEnum,Performance]:
+#     components_data={}
+#     components_data[ComponentEnum.TPSA1]=Performance(**{"activity":0.1230,"qed":0.5525,"sa":0.9251})
+#     components_data[ComponentEnum.TPSA3]=Performance(**{"activity":0.3615,"qed":0.71051,"sa":0.9023})
+#     components_data[ComponentEnum.ALERT]=Performance(**{"activity":0.1313,"qed":0.5866,"sa":0.9529})
+#     components_data[ComponentEnum.CENTER]=Performance(**{"activity":0.1497,"qed":0.5904,"sa":0.9261})
+#     components_data[ComponentEnum.GRAPH1]=Performance(**{"activity":0.1328,"qed":0.5695,"sa":0.9250})
+#     components_data[ComponentEnum.GRAPH2]=Performance(**{"activity":0.1043,"qed":0.5441,"sa":0.9344})
+#     components_data[ComponentEnum.HBA1]=Performance(**{"activity":0.1269,"qed":0.6060,"sa":0.9289})
+#     components_data[ComponentEnum.HBA2]=Performance(**{"activity":0.1364,"qed":0.6002,"sa":0.9280})
+#     components_data[ComponentEnum.HBA3]=Performance(**{"activity":0.0956,"qed":0.5560,"sa":0.9399})
+#     components_data[ComponentEnum.HBD1]=Performance(**{"activity":0.1493,"qed":0.5871,"sa":0.9322})
+#     components_data[ComponentEnum.HBD3]=Performance(**{"activity":0.1204,"qed":0.5707,"sa":0.9363})
+#     components_data[ComponentEnum.BOND]=Performance(**{"activity":0.1393,"qed":0.6424,"sa":0.9168})
+#     components_data[ComponentEnum.RING1]=Performance(**{"activity":0.1207,"qed":0.6395,"sa":0.9397})
+#     components_data[ComponentEnum.RING3]=Performance(**{"activity":0.1292,"qed":0.4863,"sa":0.9182})
+#     components_data[ComponentEnum.SLOGP1]=Performance(**{"activity":0.1306,"qed":0.6771,"sa":0.9303})
+#     components_data[ComponentEnum.SLOGP2]=Performance(**{"activity":0.1351,"qed":0.6220,"sa":0.9187})
+#     components_data[ComponentEnum.SLOGP3]=Performance(**{"activity":0.1171,"qed":0.5465,"sa":0.9393})
+#     components_data[ComponentEnum.MASS4]=Performance(**{"activity":0.1227,"qed":0.6494,"sa":0.9386})
+#     components_data[ComponentEnum.MASS1]=Performance(**{"activity":0.0989,"qed":0.5884,"sa":0.9544})
+#     return components_data
+
 def get_prior_statistic()->Performance:
-    return Performance(**{"activity":0.1044,"qed":0.5599,"sa":0.9311})
+    return Performance(**{"activity":0.1044,"qed":0.5599,"sa":0.7358})
 
 def softmax(logit:List[float],beta:float=10):
     logit=np.array(logit)
