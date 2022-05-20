@@ -25,7 +25,6 @@ class State():
     weights: Performance
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
     hypothesis_classes: List[HypothesisEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
-    max_curriculum: int=2
     
    
 
@@ -65,12 +64,12 @@ class State():
                 except Exception as e:
                     raise Exception("bugs in setup production: {}".format(e))
         except Exception as e:
-            self.broker.logger.debug(e)
+            self.broker.logger.info(e)
 
 
     def is_terminal(self)->bool:
         actions=self.get_possible_actions()
-        return len(self.curriculum)==self.max_curriculum or len(actions)==0
+        return len(actions)==0
         
     def get_reward(self):
         # assume a new component is added into self.currciculum
