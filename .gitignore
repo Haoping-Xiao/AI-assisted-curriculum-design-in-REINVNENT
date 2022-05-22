@@ -4,9 +4,10 @@ __pycache__
 scripts/*.sh
 scripts/*.out
 scripts/TODO.md
+scripts/*copy*
+scripts/deprecated
+scripts/scorer.py
+
 .mypy_cache
 models/
 unittest/
-scripts/*copy*
-scripts/stan_model.py
-scripts/deprecated
