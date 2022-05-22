@@ -1,4 +1,5 @@
 from __future__ import annotations
+from secrets import choice
 import pystan
 from typing import Dict, List, Optional, Tuple,Union
 from dataclasses import dataclass,field
@@ -16,18 +17,6 @@ from stan_model import SampleParameter
 import logging
 from multiprocessing import Pool
 from datetime import datetime
-# def first_curriculum(curriculum_name:List)->str:
-#   # agent="/scratch/work/xiaoh2/Thesis/scripts/../../reinventcli/data/augmented.prior"
-#   agent="/scratch/work/xiaoh2/Thesis/results/run_tpsa_11-04-2022/results_2/Agent.ckpt"
-#   output_dir=execute_curriculum(curriculum_name,agent,using_gpu=True)
-#   return output_dir
-
-
-# def next_curriculum(last_output_dir:str,curriculum_name:List)->str:
-#   agent=os.path.join(last_output_dir,"results_0/Agent.ckpt")
-#   output_dir=execute_curriculum(curriculum_name,agent,last_output_dir,using_gpu=True)
-#   return output_dir
-
 
 
 
@@ -35,11 +24,11 @@ from datetime import datetime
 @dataclass
 class Human():
   weights: Performance=Performance(**{HypothesisEnum.ACT.value:0.5,HypothesisEnum.QED.value:0.3,HypothesisEnum.SA.value:0.2})
-  bias: List[float]=field(default_factory=lambda:[2,20])
+  bias: List[float]=field(default_factory=lambda:[2])
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
   prior_data:Performance=field(default_factory=get_prior_statistic)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-  max_curriculum_num:int=10
+  max_curriculum_num:int=2
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
   __human_performance: List[float]=field(default_factory=lambda:[])
@@ -60,7 +49,7 @@ class Human():
     return logger
 
   def get_AI_assistant(self)->AI:
-    ai=AI(current_performance=self.current_performance,curriculum=self.curriculum, prior_choice=[12, 1, 17, 4, 11],advice=[2, 10, 2, 14, 1])
+    ai=AI(current_performance=self.current_performance,curriculum=self.curriculum)
     return ai
 
   def get_performance(self,smiles:pd.DataFrame)->Performance:
@@ -73,7 +62,10 @@ class Human():
   def setup_curriculum_pool(self)->List[ComponentEnum]:
     pool=[]
     for component in ComponentEnum:
-      if component not in (self.hypothesis_classes + self.curriculum):
+      # human have to think about components until they satisfy with current performance. When setup the pool, it means human still want improvement.
+      # Therefore, End is not the option.
+      # For curriculum settings, hypothesis components are not considered.
+      if component not in (self.hypothesis_classes + self.curriculum + [ComponentEnum.END]):
         pool.append(component)
     return pool
 
@@ -93,12 +85,12 @@ class Human():
     return evaluation
   
 
-  def get_jobname(self, component_name:ComponentEnum)->str:
-    evaluated_curriclum=self.curriculum+[component_name]
-    return '_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
+  # def get_jobname(self, component_name:ComponentEnum)->str:
+  #   evaluated_curriclum=self.curriculum+[component_name]
+  #   return '_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
 
   def read_component_performance(self, component_name:ComponentEnum)->Performance:
-    jobname=self.get_jobname(component_name)
+    jobname=self.broker.get_jobname(component_name)
     performance_path=Path(self.ai_output_dir,"_performance","{}_performance.csv".format(jobname))
     if not performance_path.exists():
       production_path=Path(self.__config.OUT_DIR,jobname,"production")
@@ -126,26 +118,31 @@ class Human():
     performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])
     return performance
 
-  def evaluate_advice(self, human_choice:ComponentEnum, advice:Union[ComponentEnum,None], save:Optional[bool]=False)->ComponentEnum:
+  def evaluate_advice(self, human_choice:ComponentEnum, advice:ComponentEnum, save:Optional[bool]=False)->ComponentEnum:
     # TODO: if update prior statistic
     p1=self.read_component_performance(human_choice)
-    p2=self.read_component_performance(advice) if advice else self.current_performance
+    p2=self.read_component_performance(advice)
 
-    p1=self.weights*p1
-    p2=self.weights*p2
-
-    prob=np.exp(self.bias[1]*(p2.sum-p1.sum))/(1+np.exp(self.bias[1]*(p2.sum-p1.sum)))
+    weighted_p1=self.weights*p1
+    weighted_p2=self.weights*p2
+    weighted_cur_p=self.weights*self.current_performance
+    # prob=np.exp(self.bias[1]*(p2.sum-p1.sum))/(1+np.exp(self.bias[1]*(p2.sum-p1.sum)))
     
-    choice=np.random.choice([human_choice,advice],p=[1-prob,prob])
-    
-    # update current performance, note, this is not shallow copy. has to inform ai
-    self.current_performance=p1 if choice==human_choice else p2
-
-    # inform AI
-    self.ai.current_performance=self.current_performance
+    # choice=np.random.choice([human_choice,advice],p=[1-prob,prob])
+    if weighted_cur_p>=weighted_p1 and weighted_cur_p>=weighted_p2:
+      self.logger.info("There is no improvement! Ending the selection!")
+      choice=ComponentEnum.END
+      
+    else:
+      choice=human_choice if weighted_p1.sum>weighted_p2.sum else advice
+      # update current performance, note, this is not shallow copy. has to inform ai
+      self.current_performance=p1 if choice==human_choice else p2
+      # inform AI
+      self.ai.current_performance=self.current_performance
 
     if save:
-      self.logger.info("prob swtich from {} to {} :{}".format(human_choice,advice,prob))
+
+      # self.logger.info("prob swtich from {} to {} :{}".format(human_choice,advice,prob))
       self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
       self.logger.info("current_performance{}".format(self.current_performance))
       self.logger.info("save comparison results after human make decision")
@@ -166,7 +163,7 @@ class Human():
       self.ai.prior_choice.append(self.ai.sampler.component_to_int(human_choice))
 
       decision=self.evaluate_advice(human_choice,advice,save=True)
-    else: #served as user model in AI
+    else: #served as user model in AI, the AI estimate how human will choose
       decision=self.evaluate_advice(human_choice,advice,save=False)
     
     return decision
@@ -184,7 +181,7 @@ class Human():
       decision=self.make_decision(evaluation)
       #inform AI
       # self.ai.curriculum.append(decision)
-      if decision:
+      if decision!=ComponentEnum.END:
         # this is shallow copy, no need to inform ai
         self.curriculum.append(decision)
       else:
@@ -192,14 +189,17 @@ class Human():
       evaluation=self.evaluate_components()
       count+=1
     self.save_performance()
-
     return self.curriculum
     
   def save_performance(self):
     data={"human":self.__human_performance,"human_ai":self.__human_ai_performance}
     df=pd.DataFrame(data=data)
-    performance_path=Path(self.__config.OUT_DIR,"_performance/result_{}.csv".format(datetime.now().strftime("%d-%m-%Y")))
-    df.to_csv(performance_path)
+    performance_path=Path(self.__config.OUT_DIR,"_performance/result.csv")
+    if performance_path.exists():
+      # in case re-start after some interruptions
+      df.to_csv(performance_path,mode="a")
+    else:
+      df.to_csv(performance_path)
     
 
 
@@ -209,7 +209,6 @@ class Human():
 class AI():
     current_performance: Performance
     prior_choice: List[int]=field(default_factory=lambda:[])
-    advice: List[int]=field(default_factory=lambda:[])
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
     n_inter:int=1000
     hypothesis_classes: List[HypothesisEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
@@ -220,23 +219,21 @@ class AI():
     def __post_init__(self):
         self.logger=logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.sampler=SampleParameter(curriculum=self.curriculum,prior_choice=self.prior_choice,advice=self.advice)
+        self.sampler=SampleParameter(curriculum=self.curriculum,prior_choice=self.prior_choice)
 
     
     def plan(self)->ComponentEnum:
         """
           give a state, search for best actions
         """
-        self.check_sampler()
 
-        if len(self.advice)==0:
+        if len(self.prior_choice)==0:
           distribution=None
         else:
           distribution= self.sampler.get_parameter_distribution()
           self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
-          self.logger.info("std: w1 {} w2 {} w3 {}".format(distribution[3][0],distribution[3][1],distribution[3][2]))
-          self.logger.info("bias1 {} std {}".format(distribution[1],distribution[4]))
-          self.logger.info("bias2 {} std {}".format(distribution[2],distribution[5]))
+          self.logger.info("std: w1 {} w2 {} w3 {}".format(distribution[2][0],distribution[2][1],distribution[2][2]))
+          self.logger.info("bias {} std {}".format(distribution[1],distribution[3]))
 
         self.inferred_weights,self.inferred_bias=self.sampler.get_parameters(distribution)
 
@@ -259,20 +256,15 @@ class AI():
               self.inferred_weights.qed=weights.qed
               self.inferred_weights.sa=weights.sa
               self.inferred_bias[0]=bias[0]
-              self.inferred_bias[1]=bias[1]
 
             
             self.simulate(root,depth=0)
         self.check_node(root)
         best_advice=self.get_best_action(root,exploration_value=0).name
-        self.advice.append(self.sampler.component_to_int(best_advice))
         return best_advice
     
 
-    def check_sampler(self):
-      self.logger.info("sampler curriculum: {}".format(self.sampler.curriculum))
-      self.logger.info("sampler prior_choice: {}".format(self.sampler.prior_choice))
-      self.logger.info("sampler advice: {}".format(self.sampler.advice))
+
     def check_space(self):
         for state_pair in self.state_space.values():
           states=state_pair.values()
@@ -368,8 +360,8 @@ class AI():
 if __name__=="__main__":
   
 
-  curriculum=[ComponentEnum.BOND,ComponentEnum.HBD1, ComponentEnum.TPSA3, ComponentEnum.CENTER, ComponentEnum.TPSA1]
-  human=Human(curriculum=curriculum)
+
+  human=Human()
   res=human.create_curriculum()
   print("res is {}".format(res))
   # output_dir=first_curriculum(["drd2_activity_1"])

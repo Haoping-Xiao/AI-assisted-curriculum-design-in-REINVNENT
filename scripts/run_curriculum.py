@@ -11,7 +11,7 @@ import logging
 from enums import ProjectConfig
 import pandas as pd
 import numpy as np
-from Thesis.scripts.deprecated.scorer import get_scorer
+from scorer import get_scorer
 
 
 logging.basicConfig(format=' %(levelname)s %(asctime)s %(name)s %(message)s',level = logging.DEBUG)
