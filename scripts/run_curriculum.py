@@ -11,7 +11,7 @@ import logging
 from enums import ProjectConfig
 import pandas as pd
 import numpy as np
-from scorer import get_scorer
+from Thesis.scripts.deprecated.scorer import get_scorer
 
 
 logging.basicConfig(format=' %(levelname)s %(asctime)s %(name)s %(message)s',level = logging.DEBUG)
@@ -121,7 +121,10 @@ class CurriculumBroker():
   def get_jobname(self, component_name:Optional[ComponentEnum]=None,evaluated_curriclum:Optional[Union[ComponentEnum,HypothesisEnum]]=None):
     if not evaluated_curriclum:
         evaluated_curriclum=self.curriculum+[component_name] if component_name else self.curriculum
-    return '_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
+    joblist=list(map(lambda enums: enums.value,evaluated_curriclum))
+    jobname='_'.join(filter(None,joblist))
+    jobname="prior" if jobname=="" else jobname
+    return jobname
 
   def setup_component(self, component_name:ComponentEnum,weight:int)->Dict:
     configs=read_component_config(self.__config.CONFIG_PATH)["components"]
@@ -161,7 +164,6 @@ class CurriculumBroker():
 
 
   def infer_scoring_function(self)->List[Dict]:
-    # TODO: learn weights
     # return a list of weighted components
     components=[]
     for hypothesis_class in self.hypothesis_classes:

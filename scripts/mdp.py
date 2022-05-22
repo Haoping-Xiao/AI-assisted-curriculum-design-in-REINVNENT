@@ -34,6 +34,8 @@ class State():
         self.broker=CurriculumBroker(weights=self.weights, curriculum=self.curriculum, hypothesis_classes=self.hypothesis_classes)
 
     def get_possible_actions(self)->List[Action]:
+        if self.is_terminal():
+            return []
         actions=[]
         for component in ComponentEnum:
             if component not in self.curriculum:
@@ -69,7 +71,7 @@ class State():
 
     def is_terminal(self)->bool:
         actions=self.get_possible_actions()
-        return len(actions)==0
+        return len(actions)==0 or ComponentEnum.END in self.curriculum
         
     def get_reward(self):
         # assume a new component is added into self.currciculum

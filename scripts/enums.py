@@ -25,6 +25,7 @@ class ComponentEnum(Enum):
     SLOGP3:str="slogp3"
     MASS1:str="mass1"
     MASS4:str="mass4"
+    END:None=None
 
 class HypothesisEnum(Enum):
     ACT:str="activity"
