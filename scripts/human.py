@@ -17,7 +17,7 @@ from stan_model import SampleParameter
 import logging
 from multiprocessing import Pool
 from datetime import datetime
-
+import warnings
 
 
 
@@ -28,7 +28,7 @@ class Human():
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
   prior_data:Performance=field(default_factory=get_prior_statistic)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-  max_curriculum_num:int=2
+  max_curriculum_num:int=10
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
   __human_performance: List[float]=field(default_factory=lambda:[])
@@ -91,29 +91,9 @@ class Human():
 
   def read_component_performance(self, component_name:ComponentEnum)->Performance:
     jobname=self.broker.get_jobname(component_name)
-    performance_path=Path(self.ai_output_dir,"_performance","{}_performance.csv".format(jobname))
+    performance_path=Path(self.ai_output_dir,"_evaluation","{}_performance.csv".format(jobname))
     if not performance_path.exists():
-      production_path=Path(self.__config.OUT_DIR,jobname,"production")
-      smiles_path=Path(production_path,self.__config.SAMPLE_PATH)
-      if not smiles_path.exists():
-        curriculum_path=Path(self.__config.OUT_DIR,jobname)
-        try:
-          if not Path(curriculum_path,self.__config.MODEL_PATH).exists():
-            try:
-              curriculum_path=self.broker.setup_curriculum(component_name,jobname)
-            except Exception as e:
-              raise Exception("bugs in setup curriculum: {}".format(e))
-          
-          try:
-            production_path=self.broker.setup_production(component_name,curriculum_path)
-          except Exception as e:
-            raise Exception("bugs in setup production: {}".format(e))
-        except Exception as e:
-          self.broker.logger.debug(e)
-      smiles= read_sample_smiles(smiles_path)     
-      performance:Performance=self.broker.infer_performance(smiles)
-      self.broker.save_performance(jobname,performance)
-    
+      raise FileExistsError("{} not exist".format(performance_path))
     df=pd.read_csv(performance_path,index_col=0)
     performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])
     return performance
@@ -129,7 +109,7 @@ class Human():
     # prob=np.exp(self.bias[1]*(p2.sum-p1.sum))/(1+np.exp(self.bias[1]*(p2.sum-p1.sum)))
     
     # choice=np.random.choice([human_choice,advice],p=[1-prob,prob])
-    if weighted_cur_p>=weighted_p1 and weighted_cur_p>=weighted_p2:
+    if weighted_cur_p.sum>=weighted_p1.sum and weighted_cur_p.sum>=weighted_p2.sum:
       self.logger.info("There is no improvement! Ending the selection!")
       choice=ComponentEnum.END
       
@@ -139,15 +119,16 @@ class Human():
       self.current_performance=p1 if choice==human_choice else p2
       # inform AI
       self.ai.current_performance=self.current_performance
+      weighted_cur_p=self.weights*self.current_performance
 
+    self.logger.info("p1 {}, p2 {}, cur {}".format(weighted_p1.sum,weighted_p2.sum,weighted_cur_p.sum))
     if save:
-
-      # self.logger.info("prob swtich from {} to {} :{}".format(human_choice,advice,prob))
+      self.logger.info("human choice {} adive {} ".format(human_choice,advice))
       self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
       self.logger.info("current_performance{}".format(self.current_performance))
       self.logger.info("save comparison results after human make decision")
-      self.__human_performance.append(p1.sum)
-      self.__human_ai_performance.append(self.current_performance.sum)
+      self.__human_performance.append(weighted_p1.sum)
+      self.__human_ai_performance.append(weighted_cur_p.sum)
 
     return choice
 
@@ -179,12 +160,9 @@ class Human():
     evaluation=self.evaluate_components()
     while evaluation and count<self.max_curriculum_num: # there is no component in pool or human decide to terminate
       decision=self.make_decision(evaluation)
-      #inform AI
-      # self.ai.curriculum.append(decision)
-      if decision!=ComponentEnum.END:
-        # this is shallow copy, no need to inform ai
-        self.curriculum.append(decision)
-      else:
+
+      self.curriculum.append(decision)
+      if decision==ComponentEnum.END:
         break
       evaluation=self.evaluate_components()
       count+=1
@@ -192,7 +170,7 @@ class Human():
     return self.curriculum
     
   def save_performance(self):
-    data={"human":self.__human_performance,"human_ai":self.__human_ai_performance}
+    data={"human":self.__human_performance,"human_ai":self.__human_ai_performance,"human_choice":self.ai.prior_choice,"decision":self.curriculum}
     df=pd.DataFrame(data=data)
     performance_path=Path(self.__config.OUT_DIR,"_performance/result.csv")
     if performance_path.exists():
@@ -210,7 +188,7 @@ class AI():
     current_performance: Performance
     prior_choice: List[int]=field(default_factory=lambda:[])
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-    n_inter:int=1000
+    n_inter:int=500
     hypothesis_classes: List[HypothesisEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
     exploration_constant:float=1/np.sqrt(2)
     max_depth:int=1
@@ -228,14 +206,17 @@ class AI():
         """
 
         if len(self.prior_choice)==0:
-          distribution=None
+          #prior knowledge
+          distribution=([0.5,0.5,0.5],3,[0.2,0.2,0.2],2)
         else:
           distribution= self.sampler.get_parameter_distribution()
           self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
           self.logger.info("std: w1 {} w2 {} w3 {}".format(distribution[2][0],distribution[2][1],distribution[2][2]))
           self.logger.info("bias {} std {}".format(distribution[1],distribution[3]))
 
-        self.inferred_weights,self.inferred_bias=self.sampler.get_parameters(distribution)
+        # self.inferred_weights,self.inferred_bias=self.sampler.get_parameters(distribution)
+        # create root state with mean values
+        self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:distribution[0][0],HypothesisEnum.QED.value:distribution[0][1],HypothesisEnum.SA.value:distribution[0][2]}),[distribution[1]]
 
         state=State(weights=self.inferred_weights,curriculum=self.curriculum)
 
@@ -331,7 +312,8 @@ class AI():
 
 
     def __get_state_name(self, curriculum: List[ComponentEnum])->str:
-      return '_'.join(list(map(lambda enums: enums.value,curriculum)))
+      curriculum_list=list(map(lambda enums: enums.value,curriculum))
+      return '_'.join(filter(None,curriculum_list))
 
     def __get_state_space(self, root_state:State)->Dict[int,Dict[str,State]]:
       
@@ -352,13 +334,16 @@ class AI():
           actions_name=list(map(lambda action:action.name, actions))
           with Pool(len(actions)) as p:
             p.map(state.take_action,actions_name)
-          
+
+        for next_state in state_space[depth+1].values():
+          next_state.get_reward(for_evaluation=True)
       return state_space
 
 
 
 if __name__=="__main__":
-  
+  # suppress scikit model userwarning due to inconsistent scikit version. The drd2 model require 0.21.2 while sa component require 0.21.3
+  warnings.simplefilter('ignore', UserWarning)
 
 
   human=Human()

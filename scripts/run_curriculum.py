@@ -1,3 +1,4 @@
+from importlib.abc import PathEntryFinder
 from pathlib import Path
 import os
 from typing import Dict, List,Optional, Union
@@ -21,8 +22,10 @@ def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,outp
   jobid=datetime.now().strftime("%d-%m-%Y")
   if production_mode:
     output_dir=os.path.join(output_dir,"production")
+    epoch=10
   else:
     output_dir=os.path.join(output_dir,"{}".format(jobname))
+    epoch=300
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -31,7 +34,7 @@ def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,outp
   reinvent_dir= os.path.join(dir_path,"../../reinventcli")
   reinvent_env="/home/xiaoh2/.conda/envs/shared"
 
-  write_curriculum_file(jobid, jobname, str(agent), reinvent_dir, output_dir, component_config, gpu=using_gpu)
+  write_curriculum_file(jobid, jobname, str(agent), reinvent_dir, output_dir, component_config, epoch=epoch, gpu=using_gpu)
   write_sample_file(jobid, jobname,  output_dir)
   write_run_train(output_dir, reinvent_env, reinvent_dir,gpu=using_gpu)
   write_run_sample(output_dir, reinvent_env, reinvent_dir) 
@@ -39,7 +42,7 @@ def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,outp
 
 
 
-def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_output_path: str, check_interval_time: int = 60)->bool:
+def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_output_path: str, check_interval_time: int = 10)->bool:
   is_end=False
   has_error=False
   
@@ -57,12 +60,12 @@ def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_ou
             is_end=True
             has_error=True
           else: # in training/sampling process
-            logging.info("Executing {}!".format(jobname))
+            # logging.info("Executing {}!".format(jobname))
             sleep(check_interval_time)
         f.close()
     except Exception as error:
       if type(error).__name__=="FileNotFoundError":
-        logging.info('{}: File does not exist yet'.format(jobname))
+        # logging.info('{}: File does not exist yet'.format(jobname))
         sleep(check_interval_time)
       else:
         logging.debug("{}: {}".format(jobname,error))
@@ -85,7 +88,6 @@ def run_job(jobname:str, output_dir:Path, ending_message:str, script:str, slurm_
   else:
     logging.debug("Failed to finish {}!".format(jobname))
   return False
-
 
 
 @dataclass
@@ -137,17 +139,21 @@ class CurriculumBroker():
   def setup_production(self,component_name:ComponentEnum,curriculum_path:Path)->Path:
     # self.curriculum remains the same in the evaluation stage, append it only when human make a decision.
     jobname=self.get_jobname(component_name)+" production"
-
-    prior_agent=Path(curriculum_path,self.__config.MODEL_PATH)
+    if len(self.curriculum):
+      prior_agent=Path(curriculum_path,self.__config.MODEL_PATH)
+    else:
+      prior_agent=self.__config.PRIOR_DIR
     component_config=self.infer_scoring_function()
 
     production_path=execute_curriculum(self.get_jobname(evaluated_curriclum=self.hypothesis_classes),component_config,prior_agent,curriculum_path,production_mode=True)
 
     success=run_job(jobname+" training",production_path,self.__config.TRAIN_ENDING_MSG,self.__config.TRAIN_SCRIPT)
+    # success=run_internal_job(jobname+" training",production_path,Path(production_path,self.__config.MODEL_PATH),self.__config.TRAIN_CONFIG)
     if not success:
         raise Exception("some error occurs in set up production training") 
     
     success=run_job(jobname+" sampling",production_path,self.__config.SAMPLE_ENDING_MSG,self.__config.SAMPLE_SCRIPT)
+    # success=run_internal_job(jobname+" sampling",production_path,Path(production_path,self.__config.SAMPLE_PATH),self.__config.SAMPLE_CONFIG)
     if not success:
         raise Exception("some error occurs in set up production sampling") 
     return production_path
@@ -156,11 +162,11 @@ class CurriculumBroker():
     """
         evaluated smiles using each hypothesis class
     """
-    scores=Performance()
+    scores={}
     for hypothesis_class in self.hypothesis_classes:
         scorer=get_scorer(hypothesis_class.value)
-        setattr(scores,hypothesis_class.value,np.mean(scorer.get_score(smiles)))
-    return scores
+        scores[hypothesis_class.value]=np.mean(scorer.get_score(smiles))
+    return Performance(**scores)
 
 
   def infer_scoring_function(self)->List[Dict]:
@@ -171,7 +177,7 @@ class CurriculumBroker():
         components.append(self.setup_component(hypothesis_class,weight))
     return components
   
-  def save_performance(self,jobname:ComponentEnum,performance:Performance):
+  def save_performance(self,jobname:ComponentEnum,performance:Performance,for_evaluation:Optional[bool]=False):
     #create a new folder to save
     path=Path(self.__config.OUT_DIR,"_performance")
     try:
@@ -180,6 +186,13 @@ class CurriculumBroker():
         pass
     performance.to_csv(jobname,path)
 
+    if for_evaluation:
+      path=Path(self.__config.OUT_DIR,"_evaluation")
+      try:
+          os.makedirs(path)
+      except FileExistsError:
+          pass
+      performance.to_csv(jobname,path)
 
 
 
