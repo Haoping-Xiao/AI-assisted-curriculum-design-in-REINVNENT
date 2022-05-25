@@ -51,7 +51,7 @@ def read_component_config(path:Path):
         component_config=json.load(config_file)
     return component_config
 
-def write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, components, id=0, gpu=False):
+def write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, components, epoch=300, id=0, gpu=False):
   # if required, generate a folder to store the results
   try:
       os.makedirs(output_dir)
@@ -97,7 +97,7 @@ def write_curriculum_file(jobid, jobname, agent, reinvent_dir, output_dir, compo
   configuration["parameters"]["reinforcement_learning"] = {
       "prior": os.path.join(reinvent_dir, "data/augmented.prior"),
       "agent": agent,
-      "n_steps": 300,
+      "n_steps": epoch,
       "sigma": 128,
       "learning_rate": 0.0001,
       "batch_size": 128,
@@ -229,8 +229,8 @@ def write_run_train(output_dir, reinvent_env, reinvent_dir, n_component_configs=
       pass
   with open(runfile, 'w') as f:
       f.write("#!/bin/bash -l \n")
-      f.write("#SBATCH --cpus-per-task=4 --gres=gpu:1 --exclude=gpu[11-17]\n") if gpu else f.write("#SBATCH --cpus-per-task=4 \n")
-      f.write('#SBATCH --time=02:00:00 --mem-per-cpu=4000\n')
+      f.write("#SBATCH --gres=gpu:1 --exclude=gpu[11-17]\n") if gpu else f.write("#SBATCH --cpus-per-task=4 \n")
+      f.write('#SBATCH --time=00:05:00 \n')
       f.write('#SBATCH -o {}/slurm/out_%a.out\n'.format(output_dir))
       f.write('#SBATCH --array=0-{}\n'.format(n_component_configs))
       # f.write('#SBATCH -p short\n')
@@ -251,7 +251,7 @@ def write_run_sample(output_dir, reinvent_env, reinvent_dir, n_component_configs
   with open(runfile, 'w') as f:
       f.write("#!/bin/bash -l \n")
       f.write("#SBATCH --cpus-per-task=4 \n")
-      f.write('#SBATCH --time=02:00:00 --mem-per-cpu=4000\n')
+      f.write('#SBATCH --time=00:05:00 --mem-per-cpu=4000\n')
       f.write('#SBATCH -o {}/slurm/out_%a.out\n'.format(output_dir))
       f.write('#SBATCH --array=0-{}\n'.format(n_component_configs))
       f.write('#SBATCH -p short\n')
