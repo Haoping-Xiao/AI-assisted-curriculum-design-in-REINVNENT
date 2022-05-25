@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from copy import deepcopy
-from utils import get_component_statistic,get_prior_statistic
+from utils import get_component_statistic,get_prior_statistic,softmax
 from typing import Dict, List, Optional, Tuple
 from utils import  Performance
 from enums import ComponentEnum,HypothesisEnum,ProjectConfig
@@ -27,10 +27,11 @@ class SampleParameter():
         self.pri_sa=[]
 
         for component_name in ComponentEnum:
-          p=components_data[component_name]-prior #normalized component_data
-          self.pri_activity.append(p.activity)
-          self.pri_qed.append(p.qed)
-          self.pri_sa.append(p.sa)
+          if component_name!=ComponentEnum.END:
+            p=components_data[component_name]-prior #normalized component_data
+            self.pri_activity.append(p.activity)
+            self.pri_qed.append(p.qed)
+            self.pri_sa.append(p.sa)
 
     def get_jobname(self):
         return '_'.join(list(map(lambda enums: enums.value,self.curriculum)))
@@ -54,22 +55,23 @@ class SampleParameter():
         
         return mean_weights,mean_beta,std_weights,std_beta
 
-    def get_parameters(self,distribution:Optional[Tuple[List[float],float,List[float],float]]=None)->Tuple[Performance,List[float]]:
+    def get_parameters(self,distribution:Tuple[List[float],float,List[float],float])->Tuple[Performance,List[float]]:
         
-        if not distribution:
-          w=np.random.normal(loc=0.5,scale=0.2,size=3)
-          w=w/np.sum(w)
-          bias=np.random.uniform(low=1,high=4)
-          self.logger.info("get prior parameters w {} bias {}".format(w, bias))
-        else:
-          w1=np.random.normal(loc=distribution[0][0],scale=distribution[2][0])
-          w2=np.random.normal(loc=distribution[0][1],scale=distribution[2][1])
-          w3=np.random.normal(loc=distribution[0][2],scale=distribution[2][2])
-          w=np.array([w1,w2,w3])
-          w=w/np.sum(w)
-          bias=np.random.uniform(low=distribution[1]-distribution[3],high=distribution[1]+distribution[3])
+        # if not distribution:
+        #   w=np.random.normal(loc=0.5,scale=0.2,size=3)
+        #   w=softmax(w,beta=1)
+        #   bias=np.random.uniform(low=1,high=4)
+        #   self.logger.info("get prior parameters w {} bias {}".format(w, bias))
+        # else:
+        w1=np.random.normal(loc=distribution[0][0],scale=distribution[2][0])
+        w2=np.random.normal(loc=distribution[0][1],scale=distribution[2][1])
+        w3=np.random.normal(loc=distribution[0][2],scale=distribution[2][2])
+        w=np.array([w1,w2,w3])
+        # w=w/np.sum(w)
+        w=softmax(w,beta=1)
+        bias=np.random.uniform(low=distribution[1]-distribution[3],high=distribution[1]+distribution[3])
 
-          self.logger.info("get posterior parameters w {} bias {}".format(w, bias))
+        self.logger.info("get parameters w {} bias {}".format(w, bias))
         w=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]})
         bias:List[float]=[bias]
         
@@ -83,7 +85,7 @@ class SampleParameter():
 
     def prepare_data(self)->Dict:
         K=len(self.curriculum)
-        J=len(ComponentEnum)
+        J=len(ComponentEnum)-1
         
         # decision=[]
         prior_activity=[]
