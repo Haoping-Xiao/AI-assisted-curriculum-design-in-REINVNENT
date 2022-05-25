@@ -5,9 +5,7 @@ from dataclasses import dataclass,field
 from pathlib import Path
 from utils import Performance, read_sample_smiles
 from run_curriculum import CurriculumBroker
-
-
-
+import time
 @dataclass
 class Action():
     name:ComponentEnum
@@ -34,7 +32,7 @@ class State():
         self.broker=CurriculumBroker(weights=self.weights, curriculum=self.curriculum, hypothesis_classes=self.hypothesis_classes)
 
     def get_possible_actions(self)->List[Action]:
-        if self.is_terminal():
+        if ComponentEnum.END in self.curriculum:
             return []
         actions=[]
         for component in ComponentEnum:
@@ -51,29 +49,35 @@ class State():
         try:
             jobname=self.broker.get_jobname(action)
             curriculum_path=Path(self.config.OUT_DIR,jobname)
-            #check if the agent exist
-            if not Path(curriculum_path,self.config.MODEL_PATH).exists():
-                try:
-                    curriculum_path=self.broker.setup_curriculum(action,jobname)
-                except Exception as e:
-                    raise Exception("bugs in setup curriculum: {}".format(e))
-
+            if jobname!="prior":
+                # only none action(curriculum) doesn't need to run curriculum
+                #check if the agent exist
+                if not Path(curriculum_path,self.config.MODEL_PATH).exists():
+                    try:
+                        t=time.time()
+                        curriculum_path=self.broker.setup_curriculum(action,jobname)
+                        self.broker.logger.info("curriculum spent {} secs".format(time.time()-t))
+                    except Exception as e:
+                        raise Exception("bugs in setup curriculum: {}".format(e))
+            
             production_path=Path(curriculum_path,"production")
             #check if sample file exists
-            if not Path(production_path,self.config.SAMPLE_PATH).exists():
-                try:
-                    production_path=self.broker.setup_production(action,curriculum_path)
-                except Exception as e:
-                    raise Exception("bugs in setup production: {}".format(e))
+            # if not Path(production_path,self.config.SAMPLE_PATH).exists():
+            try:
+                t=time.time()
+                production_path=self.broker.setup_production(action,curriculum_path)
+                self.broker.logger.info("production spent {} secs".format(time.time()-t))
+            except Exception as e:
+                raise Exception("bugs in setup production: {}".format(e))
         except Exception as e:
             self.broker.logger.info(e)
 
 
     def is_terminal(self)->bool:
         actions=self.get_possible_actions()
-        return len(actions)==0 or ComponentEnum.END in self.curriculum
+        return len(actions)==0
         
-    def get_reward(self):
+    def get_reward(self,for_evaluation:Optional[bool]=False):
         # assume a new component is added into self.currciculum
         # means get_reward should only happen after take_action
         jobname=self.broker.get_jobname()
@@ -81,7 +85,7 @@ class State():
         smiles_path=Path(production_path,self.config.SAMPLE_PATH)
         smiles=  read_sample_smiles(smiles_path) 
         performance:Performance=self.broker.infer_performance(smiles)
-        self.broker.save_performance(jobname,performance)
+        self.broker.save_performance(jobname,performance,for_evaluation)
         return (performance*self.weights).sum
 
 
