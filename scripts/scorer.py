@@ -65,8 +65,8 @@ if __name__=='__main__':
     MAX_CONFIGURATION_NUM=1
     file_path=os.path.dirname(os.path.realpath(__file__))
     # jobname='run_curriculum_activity_tspa'
-    jobname='run_prior'
-    jobid='08-04-2022'
+    jobname='activity_qed_sa'
+    jobid='23-04-2022'
     # smiles_filename='scaffold_memory.csv'
     smiles_filename='sampled.csv' 
     # mode='qed' #'qed' or 'activity' or 'sa'
