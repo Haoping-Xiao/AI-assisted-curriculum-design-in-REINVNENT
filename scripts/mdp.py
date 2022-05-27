@@ -36,8 +36,8 @@ class State():
             return []
         actions=[]
         for component in ComponentEnum:
-            if component not in self.curriculum:
-                actions.append(Action(name=component))
+            # if component not in self.curriculum:
+            actions.append(Action(name=component))
         return actions
         
 

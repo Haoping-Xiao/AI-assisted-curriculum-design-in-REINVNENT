@@ -209,7 +209,7 @@ def write_sample_file(jobid, jobname, output_dir, id=0):
     "parameters": {
         "model_path": os.path.join(output_dir, "results_{}/Agent.ckpt".format(id)),
         "output_smiles_path": os.path.join(output_dir, "results_{}/sampled.csv".format(id)),
-        "num_smiles": 1024,
+        "num_smiles": 1000,
         "batch_size": 128,                          
         "with_likelihood": False
     },

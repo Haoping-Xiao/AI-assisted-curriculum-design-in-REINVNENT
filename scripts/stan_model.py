@@ -87,33 +87,36 @@ class SampleParameter():
         K=len(self.curriculum)
         J=len(ComponentEnum)-1
         
-        # decision=[]
-        prior_activity=[]
-        prior_qed=[]
-        prior_sa=[]
+        # # decision=[]
+        # prior_activity=[]
+        # prior_qed=[]
+        # prior_sa=[]
 
-        for k in range(K):
-          if len(self.prior_choice)>1:
-            self.pri_activity[self.prior_choice[k-1]]=0
-            self.pri_qed[self.prior_choice[k-1]]=0
-            self.pri_sa[self.prior_choice[k-1]]=0
+        # for k in range(K):
+        #   if len(self.prior_choice)>1:
+        #     self.pri_activity[self.prior_choice[k-1]]=0
+        #     self.pri_qed[self.prior_choice[k-1]]=0
+        #     self.pri_sa[self.prior_choice[k-1]]=0
 
-          prior_activity.append(deepcopy(self.pri_activity))
-          prior_qed.append(deepcopy(self.pri_qed))
-          prior_sa.append(deepcopy(self.pri_sa))
+        #   prior_activity.append(deepcopy(self.pri_activity))
+        #   prior_qed.append(deepcopy(self.pri_qed))
+        #   prior_sa.append(deepcopy(self.pri_sa))
 
 
 
-        self.logger.info("curriculum {}".format(self.curriculum))
-        self.logger.info("prior_choice {}".format(self.prior_choice))
-        self.logger.info("prior_activity {}".format(prior_activity))
-        self.logger.info("prior_qed {}".format(prior_qed))
-        self.logger.info("prior_sa {}".format(prior_sa))
+        # self.logger.info("curriculum {}".format(self.curriculum))
+        # self.logger.info("prior_choice {}".format(self.prior_choice))
+        # self.logger.info("prior_activity {}".format(prior_activity))
+        # self.logger.info("prior_qed {}".format(prior_qed))
+        # self.logger.info("prior_sa {}".format(prior_sa))
 
         data={"J":J,
               "K":K,
-              "prior_activity":prior_activity,
-              "prior_qed":prior_qed,
-              "prior_sa":prior_sa,
+              # "prior_activity":prior_activity,
+              # "prior_qed":prior_qed,
+              # "prior_sa":prior_sa,
+              "prior_activity":self.pri_activity,
+              "prior_qed":self.pri_qed,
+              "prior_sa":self.pri_sa,
               "prior_choice":self.prior_choice}
         return data

@@ -65,7 +65,8 @@ class Human():
       # human have to think about components until they satisfy with current performance. When setup the pool, it means human still want improvement.
       # Therefore, End is not the option.
       # For curriculum settings, hypothesis components are not considered.
-      if component not in (self.hypothesis_classes + self.curriculum + [ComponentEnum.END]):
+      if component != ComponentEnum.END:
+      # if component not in (self.hypothesis_classes + self.curriculum + [ComponentEnum.END]):
         pool.append(component)
     return pool
 
