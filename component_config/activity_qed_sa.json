@@ -2,27 +2,25 @@
 {
   "name": "curriculum",
   "components":[
-    {
+    { 
       "component_type": "predictive_property",
-      "name": "drd2 human component 1",
-      "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_1",
+      "name": "activity",
+      "weight": 0.5,
+      "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
       "smiles": [],
       "specific_parameters": {
-        "container_type": "gpflow_container",
-        "descriptor_type": "ecfp",
-        "gpflow": "regression",
-        "high": 1,
-        "low": 0,
-        "size": 1024,
-        "transformation": true,
-        "transformation_type": "clipping"
-      }
+          "transformation_type": "no_transformation",
+          "scikit": "classification",
+          "transformation": false,
+          "descriptor_type": "ecfp",
+          "size": 2048,
+          "radius": 3
+          }
     },
     {
       "component_type": "qed_score",
       "name": "QED",        
-      "weight": 1,
+      "weight": 0.3,
       "model_path": null,
       "smiles": [],
       "specific_parameters": {
@@ -31,17 +29,13 @@
       }                
     },
     {
-      "component_type": "rdkit_sa_score",
+      "component_type": "sa_score",
       "name": "sa",        
-      "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
+      "weight": 0.2,
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/sa.pkl",
       "smiles": [],
       "specific_parameters": {
-        "transformation_type": "reverse_sigmoid",
-        "high": 10,
-        "low": 1,
-        "k":0.5,
-        "transformation": true
+        "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility"
       }             
     }
 
