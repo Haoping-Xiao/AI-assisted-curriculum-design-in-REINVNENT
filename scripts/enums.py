@@ -6,25 +6,28 @@ from pathlib import Path
 
 
 class ComponentEnum(Enum):
-    TPSA1:str="tpsa1"
     TPSA3:str="tpsa3"
     ALERT:str="alerts"
     CENTER:str="center"
     GRAPH1:str="graph1"
-    GRAPH2:str="graph2"
-    HBA1:str="hba1"
     HBA2:str="hba2"
-    HBA3:str="hba3"
     HBD1:str="hbd1"
-    HBD3:str="hbd3"
+    HBD4:str="hbd4"
     BOND:str="bond"
-    RING1:str="ring1"
     RING3:str="ring3"
-    SLOGP1:str="slogp1"
     SLOGP2:str="slogp2"
-    SLOGP3:str="slogp3"
-    MASS1:str="mass1"
-    MASS4:str="mass4"
+    MASS3:str="mass3"
+    SIM0:str="sim0"
+    SIM1:str="sim1"
+    SIM2:str="sim2"
+    SIM3:str="sim3"
+    SIM4:str="sim4"
+    SIM5:str="sim5"
+    SIM6:str="sim6"
+    SIM7:str="sim7"
+    SIM8:str="sim8"
+    SIM9:str="sim9"
+    SUB:str="sub"
     END:None=None
 
 class HypothesisEnum(Enum):

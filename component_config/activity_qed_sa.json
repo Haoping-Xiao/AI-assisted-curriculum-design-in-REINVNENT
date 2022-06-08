@@ -5,8 +5,8 @@
     { 
       "component_type": "predictive_property",
       "name": "activity",
-      "weight": 0.5,
-      "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
+      "weight": 0.8,
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/weak_drd2.pkl",
       "smiles": [],
       "specific_parameters": {
           "transformation_type": "no_transformation",
@@ -20,7 +20,7 @@
     {
       "component_type": "qed_score",
       "name": "QED",        
-      "weight": 0.3,
+      "weight": 0.1,
       "model_path": null,
       "smiles": [],
       "specific_parameters": {
@@ -31,7 +31,7 @@
     {
       "component_type": "sa_score",
       "name": "sa",        
-      "weight": 0.2,
+      "weight": 0.1,
       "model_path": "/scratch/work/xiaoh2/Thesis/models/sa.pkl",
       "smiles": [],
       "specific_parameters": {

@@ -4,8 +4,8 @@
     { 
       "component_type": "predictive_property",
       "name": "activity",
-      "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/ReinventCommunity/notebooks/data/drd2.pkl",
+      "weight": 0.8,
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/weak_drd2.pkl",
       "smiles": [],
       "specific_parameters": {
           "transformation_type": "no_transformation",
@@ -15,40 +15,6 @@
           "size": 2048,
           "radius": 3
           }
-    },
-    {
-      "component_type": "predictive_property",
-      "name": "drd2_activity_1",
-      "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_1",
-      "smiles": [],
-      "specific_parameters": {
-        "container_type": "gpflow_container",
-        "descriptor_type": "ecfp",
-        "gpflow": "regression",
-        "high": 1,
-        "low": 0,
-        "size": 1024,
-        "transformation": true,
-        "transformation_type": "clipping"
-      }
-    },
-    {
-      "component_type": "predictive_property",
-      "name": "drd2_activity_2",
-      "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/Thesis/data/drd2_activity_model_2",
-      "smiles": [],
-      "specific_parameters": {
-        "container_type": "gpflow_container",
-        "descriptor_type": "ecfp",
-        "gpflow": "regression",
-        "high": 1,
-        "low": 0,
-        "size": 1024,
-        "transformation": true,
-        "transformation_type": "clipping"
-      }
     },
     {
       "component_type": "tpsa",
@@ -204,15 +170,15 @@
     },
     {
       "component_type": "num_hbd_lipinski",
-      "name": "hbd3",
+      "name": "hbd4",
       "weight": 1,
       "smiles":[],
       "model_path": null,
       "specific_parameters": {
         "transformation": true,
         "transformation_type": "step",
-        "high": 6,
-        "low": 0
+        "high": 10,
+        "low": 6
       }
     },
     {
@@ -224,7 +190,7 @@
       "specific_parameters": {
         "transformation": true,
         "transformation_type": "step",
-        "high": 5,
+        "high": 15,
         "low": 0
       }
     },
@@ -307,30 +273,17 @@
     },
     {
       "component_type": "molecular_weight",
-      "name": "mass1",
+      "name": "mass3",
       "weight": 1,
       "model_path": null,
       "smiles": [],
       "specific_parameters": {
         "transformation_type": "double_sigmoid",
-        "high": 500,
+        "high": 700,
         "low": 300,
-        "coef_div": 2000,
+        "coef_div": 3000,
         "coef_si": 20,
-        "coef_se": 100,
-        "transformation": true
-      }  
-    },
-    {
-      "component_type": "molecular_weight",
-      "name": "mass4",
-      "weight": 1,
-      "model_path": null,
-      "smiles": [],
-      "specific_parameters": {
-        "transformation_type": "step",
-        "high": 500,
-        "low": 200,
+        "coef_se": 50,
         "transformation": true
       }
     },
@@ -368,6 +321,127 @@
       "specific_parameters": {
         "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility"
       }             
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim0",
+      "weight": 1,
+      "smiles":["O=C(NC1CCN(Cc2ccccc2)C1)c1ccc(-c2ccsc2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim1",
+      "weight": 1,
+      "smiles":["N#Cc1ccc(CCOC(=O)N2CCN(CCCC(c3ccc(F)cc3)c3ccc(F)cc3)CC2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim2",
+      "weight": 1,
+      "smiles":["Oc1nc2c(O)ccc(C(O)CNCCc3ccc(CNCCc4c(Cl)cccc4Cl)cc3)c2s1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim3",
+      "weight": 1,
+      "smiles":["Cc1cccc(S(=O)(=O)NCCCCN2CCN(c3nsc4ccccc34)CC2)c1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim4",
+      "weight": 1,
+      "smiles":["Fc1ccc(C(OC2CC3CCC(C2)N3Cc2cccc3ccccc23)c2ccc(F)cc2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim5",
+      "weight": 1,
+      "smiles":["COc1cccc(CCCCN2CCN(c3ccc(Cl)cc3)CC2)c1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim6",
+      "weight": 1,
+      "smiles":["COc1cccc2cc(C(=O)NCCCCN3CCN(c4cccc5nccnc45)CC3)oc12"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim7",
+      "weight": 1,
+      "smiles":["O=C1c2ccccc2CCC1C1CCN(CC2CC2)CC1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim8",
+      "weight": 1,
+      "smiles":["CSc1ccccc1N1CCN(CCCCCC(=O)N2CCc3ccccc3C2)CC1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim9",
+      "weight": 1,
+      "smiles":["Cc1ccccc1-c1cc2c(O)n(CCN3CCN(c4ccccc4Cl)CC3)c(O)nc-2n1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "matching_substructure",
+      "name": "sub",
+      "weight": 1,
+      "smiles":["[#6]1:[#6]:[#6]:[#6]:[#6](-[#6]-[#6]-[#6]-[#6]-[#7]2-[#6]-[#6]-[#7](-[#6]3:[#6]:[#6]:[#6]:[#6]:[#6]:3)-[#6]-[#6]-2):[#6]:1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
     }
 
 

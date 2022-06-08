@@ -1,0 +1,115 @@
+{
+  "name": "tanimoto",
+  "components":[
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim0",
+      "weight": 1,
+      "smiles":["O=C(NC1CCN(Cc2ccccc2)C1)c1ccc(-c2ccsc2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim1",
+      "weight": 1,
+      "smiles":["N#Cc1ccc(CCOC(=O)N2CCN(CCCC(c3ccc(F)cc3)c3ccc(F)cc3)CC2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim2",
+      "weight": 1,
+      "smiles":["Oc1nc2c(O)ccc(C(O)CNCCc3ccc(CNCCc4c(Cl)cccc4Cl)cc3)c2s1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim3",
+      "weight": 1,
+      "smiles":["Cc1cccc(S(=O)(=O)NCCCCN2CCN(c3nsc4ccccc34)CC2)c1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim4",
+      "weight": 1,
+      "smiles":["Fc1ccc(C(OC2CC3CCC(C2)N3Cc2cccc3ccccc23)c2ccc(F)cc2)cc1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim5",
+      "weight": 1,
+      "smiles":["COc1cccc(CCCCN2CCN(c3ccc(Cl)cc3)CC2)c1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim6",
+      "weight": 1,
+      "smiles":["COc1cccc2cc(C(=O)NCCCCN3CCN(c4cccc5nccnc45)CC3)oc12"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim7",
+      "weight": 1,
+      "smiles":["O=C1c2ccccc2CCC1C1CCN(CC2CC2)CC1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim8",
+      "weight": 1,
+      "smiles":["CSc1ccccc1N1CCN(CCCCCC(=O)N2CCc3ccccc3C2)CC1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    },
+    {
+      "component_type": "tanimoto_similarity",
+      "name": "sim9",
+      "weight": 1,
+      "smiles":["Cc1ccccc1-c1cc2c(O)n(CCN3CCN(c4ccccc4Cl)CC3)c(O)nc-2n1"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    }
+  ]
+}

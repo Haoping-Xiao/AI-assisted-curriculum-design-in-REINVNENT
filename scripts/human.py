@@ -23,7 +23,7 @@ import warnings
 
 @dataclass
 class Human():
-  weights: Performance=Performance(**{HypothesisEnum.ACT.value:0.5,HypothesisEnum.QED.value:0.3,HypothesisEnum.SA.value:0.2})
+  weights: Performance=Performance(**{HypothesisEnum.ACT.value:0.8,HypothesisEnum.QED.value:0.1,HypothesisEnum.SA.value:0.1})
   bias: List[float]=field(default_factory=lambda:[2])
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
   prior_data:Performance=field(default_factory=get_prior_statistic)
@@ -100,7 +100,6 @@ class Human():
     return performance
 
   def evaluate_advice(self, human_choice:ComponentEnum, advice:ComponentEnum, save:Optional[bool]=False)->ComponentEnum:
-    # TODO: if update prior statistic
     p1=self.read_component_performance(human_choice)
     p2=self.read_component_performance(advice)
 
@@ -208,7 +207,7 @@ class AI():
 
         if len(self.prior_choice)==0:
           #prior knowledge
-          distribution=([0.5,0.5,0.5],3,[0.2,0.2,0.2],2)
+          distribution=([0.6,0.2,0.2],3,[0.2,0.2,0.2],2)
         else:
           distribution= self.sampler.get_parameter_distribution()
           self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
