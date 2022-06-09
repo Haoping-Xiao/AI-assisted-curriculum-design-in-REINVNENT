@@ -40,7 +40,7 @@ class Human():
     self.logger=self.get_logger()
     # self.current_performance= self.prior_data.copy()
     self.ai=self.get_AI_assistant()
-    self.broker=CurriculumBroker(weights=self.weights, curriculum=self.curriculum, hypothesis_classes=self.hypothesis_classes)
+    self.broker=CurriculumBroker(curriculum=self.curriculum, hypothesis_classes=self.hypothesis_classes)
     
   def get_logger(self)->logging.Logger:
     logger=logging.getLogger(__name__)
@@ -92,9 +92,29 @@ class Human():
 
   def read_component_performance(self, component_name:ComponentEnum)->Performance:
     jobname=self.broker.get_jobname(component_name)
-    performance_path=Path(self.ai_output_dir,"_evaluation","{}_performance.csv".format(jobname))
+    performance_path=Path(self.ai_output_dir,"_performance","{}_performance.csv".format(jobname))
     if not performance_path.exists():
-      raise FileExistsError("{} not exist".format(performance_path))
+      production_path=Path(self.__config.OUT_DIR,jobname,"production")
+      smiles_path=Path(production_path,self.__config.SAMPLE_PATH)
+      if not smiles_path.exists():
+        curriculum_path=Path(self.__config.OUT_DIR,jobname)
+        try:
+          if not Path(curriculum_path,self.__config.MODEL_PATH).exists():
+            try:
+              curriculum_path=self.broker.setup_curriculum(component_name,jobname)
+            except Exception as e:
+              raise Exception("bugs in setup curriculum: {}".format(e))
+
+          try:
+            production_path=self.broker.setup_production(component_name,curriculum_path)
+          except Exception as e:
+            raise Exception("bugs in setup production: {}".format(e))
+        except Exception as e:
+          self.broker.logger.debug(e)
+      smiles= read_sample_smiles(smiles_path)     
+      performance:Performance=self.broker.infer_performance(smiles)
+      self.broker.save_performance(jobname,performance)
+
     df=pd.read_csv(performance_path,index_col=0)
     performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])
     return performance
@@ -188,7 +208,7 @@ class AI():
     current_performance: Performance
     prior_choice: List[int]=field(default_factory=lambda:[])
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-    n_inter:int=500
+    n_inter:int=1000
     hypothesis_classes: List[HypothesisEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
     exploration_constant:float=1/np.sqrt(2)
     max_depth:int=1
@@ -207,7 +227,7 @@ class AI():
 
         if len(self.prior_choice)==0:
           #prior knowledge
-          distribution=([0.6,0.2,0.2],3,[0.2,0.2,0.2],2)
+          distribution=([0.7,0.15,0.15],3,[0.05,0.05,0.05],2)
         else:
           distribution= self.sampler.get_parameter_distribution()
           self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
@@ -218,7 +238,7 @@ class AI():
         # create root state with mean values
         self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:distribution[0][0],HypothesisEnum.QED.value:distribution[0][1],HypothesisEnum.SA.value:distribution[0][2]}),[distribution[1]]
 
-        state=State(weights=self.inferred_weights,curriculum=self.curriculum)
+        state=State(curriculum=self.curriculum)
 
         root = Node(state=state,parent=None,actions=state.get_possible_actions())
             
@@ -266,6 +286,7 @@ class AI():
         node=self.transition(root,action,depth)
         root.children[action.name]=node
         reward = node.state.get_reward()
+        reward = (reward * self.inferred_weights).sum
         depth+=1
         if depth==self.max_depth or node.num_visits==0 or node.is_terminal:
             q=reward
@@ -326,7 +347,7 @@ class AI():
         for state in current_states:
           actions=state.get_possible_actions()
           for action in actions:
-            next_state=State(weights=state.weights,curriculum=state.curriculum+[action.name])
+            next_state=State(curriculum=state.curriculum+[action.name])
             next_state_name=self.__get_state_name(next_state.curriculum)
             state_space[depth+1][next_state_name]=next_state
           # take action in advance here for parallel efficicy
@@ -334,9 +355,6 @@ class AI():
           actions_name=list(map(lambda action:action.name, actions))
           with Pool(len(actions)) as p:
             p.map(state.take_action,actions_name)
-
-        for next_state in state_space[depth+1].values():
-          next_state.get_reward(for_evaluation=True)
       return state_space
 
 
