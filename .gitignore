@@ -6,6 +6,7 @@ scripts/*.out
 scripts/TODO.md
 scripts/*copy*
 scripts/deprecated
+scripts/run_component.py
 scripts/scorer.py
 scripts/test_*
 .mypy_cache

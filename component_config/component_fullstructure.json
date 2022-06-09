@@ -1,0 +1,16 @@
+{
+  "name": "substructure",
+  "components":[
+    {
+      "component_type": "matching_substructure",
+      "name": "matching_substructure",
+      "weight": 1,
+      "smiles":["[*]NC(=O)c1nn([*])c2c1CCc3cnc(Nc4ccccc4)nc23"],
+      "model_path": null,
+      "specific_parameters": {
+        "transformation_type": "no_transformation",
+        "transformation": false
+      }     
+    }
+  ]
+}
