@@ -64,7 +64,6 @@ class Human():
     for component in ComponentEnum:
       # human have to think about components until they satisfy with current performance. When setup the pool, it means human still want improvement.
       # Therefore, End is not the option.
-      # For curriculum settings, hypothesis components are not considered.
       if component != ComponentEnum.END:
       # if component not in (self.hypothesis_classes + self.curriculum + [ComponentEnum.END]):
         pool.append(component)
@@ -225,18 +224,15 @@ class AI():
           give a state, search for best actions
         """
 
-        if len(self.prior_choice)==0:
-          #prior knowledge
-          distribution=([0.7,0.15,0.15],3,[0.05,0.05,0.05],2)
-        else:
-          distribution= self.sampler.get_parameter_distribution()
-          self.logger.info("w1 {} w2 {} w3 {}".format(distribution[0][0],distribution[0][1],distribution[0][2]))
-          self.logger.info("std: w1 {} w2 {} w3 {}".format(distribution[2][0],distribution[2][1],distribution[2][2]))
-          self.logger.info("bias {} std {}".format(distribution[1],distribution[3]))
+        # if len(self.prior_choice)==0:
+        #   #prior knowledge
+        #   distribution=([0.7,0.15,0.15],3,[0.05,0.05,0.05],2)
+        #   self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:distribution[0][0],HypothesisEnum.QED.value:distribution[0][1],HypothesisEnum.SA.value:distribution[0][2]}),[distribution[1]]
+        # else:
+        #   distribution=None
+        weights,beta= self.sampler.get_parameter(iter=self.n_inter)
+        self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:weights[0][0],HypothesisEnum.QED.value:weights[0][1],HypothesisEnum.SA.value:weights[0][2]}),[beta[0]]
 
-        # self.inferred_weights,self.inferred_bias=self.sampler.get_parameters(distribution)
-        # create root state with mean values
-        self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:distribution[0][0],HypothesisEnum.QED.value:distribution[0][1],HypothesisEnum.SA.value:distribution[0][2]}),[distribution[1]]
 
         state=State(curriculum=self.curriculum)
 
@@ -251,13 +247,16 @@ class AI():
         
         for i in range(self.n_inter):
             if i>0:
-              weights,bias=self.sampler.get_parameters(distribution)
-              # trick: update weights in state space due to shallow copy
-              self.inferred_weights.activity=weights.activity
-              self.inferred_weights.qed=weights.qed
-              self.inferred_weights.sa=weights.sa
-              self.inferred_bias[0]=bias[0]
 
+              # weights,bias=Performance(**{HypothesisEnum.ACT.value:weights[i][0],HypothesisEnum.QED.value:weights[i][1],HypothesisEnum.SA.value:weights[i][2]}),[beta[i]]
+              # self.logger.info("get parameters w {} bias {}".format(weights, bias))
+              # trick: update weights in state space due to shallow copy
+              self.inferred_weights.activity=weights[i][0]
+              self.inferred_weights.qed=weights[i][1]
+              self.inferred_weights.sa=weights[i][2]
+              self.inferred_bias[0]=beta[i]
+
+            self.logger.info("get parameters w {} bias {}".format(self.inferred_weights, self.inferred_bias))
             
             self.simulate(root,depth=0)
         self.check_node(root)

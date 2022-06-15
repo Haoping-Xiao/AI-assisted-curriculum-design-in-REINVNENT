@@ -3,17 +3,13 @@
   "name": "components for sa component",
   "components":[
     {
-      "component_type": "rdkit_sa_score",
+      "component_type": "sa_score",
       "name": "sa",        
       "weight": 1,
-      "model_path": "/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility",
+      "model_path": "/scratch/work/xiaoh2/Thesis/models/sa.pkl",
       "smiles": [],
       "specific_parameters": {
-        "transformation_type": "reverse_sigmoid",
-        "high": 10,
-        "low": 1,
-        "k":0.5,
-        "transformation": true
+        "fpscore_path":"/scratch/work/xiaoh2/reinvent_scoring/reinvent_scoring/scoring/score_components/synthetic_accessibility"
       }             
     }
   ]

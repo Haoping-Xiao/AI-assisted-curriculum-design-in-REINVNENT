@@ -35,11 +35,25 @@ class SampleParameter():
 
     def get_jobname(self):
         return '_'.join(list(map(lambda enums: enums.value,self.curriculum)))
+    
 
-    def get_parameter_distribution(self)->Tuple[List[float],float,List[float],float]:
+    # def get_piror_parameter(self,distribution:Tuple[List[float],float,List[float],float])->Tuple[List[float],float]:
+    #     w1,w2,w3=-1,-1,-1
+    #     while w1<0:
+    #         w1=np.random.normal(loc=distribution[0][0],scale=distribution[2][0])
+    #     while w2<0:
+    #         w2=np.random.normal(loc=distribution[0][1],scale=distribution[2][1])
+    #     while w3<0:
+    #         w3=np.random.normal(loc=distribution[0][2],scale=distribution[2][2])
+    #     w=np.array([w1,w2,w3])
+    #     w=w/np.sum(w)
+    #     bias=np.random.uniform(low=distribution[1]-distribution[3],high=distribution[1]+distribution[3])
+    #     return w,bias
+
+    def get_parameter(self,iter:int)->Tuple[List,List]:
         data=self.prepare_data()
         model=pystan.StanModel(file=self.__config.STAN_PATH)
-        fit=model.sampling(data=data)
+        fit=model.sampling(data=data,iter=iter)
         with open(Path(self.__config.OUT_DIR,"{}.pkl".format(self.get_jobname())),"wb") as f:
           pickle.dump({"model":model,"fit":fit},f,protocol=-1)
           
@@ -47,35 +61,28 @@ class SampleParameter():
         weights=res["w"] 
         beta=res["beta1"]
 
-        mean_weights=np.mean(weights,axis=0)
-        mean_beta=np.mean(beta)
-        std_weights=np.std(weights,axis=0)
-        std_beta=np.std(beta)
+        return weights,beta
 
+    # def get_parameters(self,distribution:Tuple[List[float],float,List[float],float])->Tuple[Performance,List[float]]:
         
-        return mean_weights,mean_beta,std_weights,std_beta
-
-    def get_parameters(self,distribution:Tuple[List[float],float,List[float],float])->Tuple[Performance,List[float]]:
+    #     # if not distribution:
+    #     #   w=np.random.normal(loc=0.5,scale=0.2,size=3)
+    #     #   w=softmax(w,beta=1)
+    #     #   bias=np.random.uniform(low=1,high=4)
+    #     #   self.logger.info("get prior parameters w {} bias {}".format(w, bias))
+    #     # else:
+    #     w1=np.random.normal(loc=distribution[0][0],scale=distribution[2][0])
+    #     w2=np.random.normal(loc=distribution[0][1],scale=distribution[2][1])
+    #     w3=np.random.normal(loc=distribution[0][2],scale=distribution[2][2])
+    #     w=np.array([w1,w2,w3])
+    #     # w=w/np.sum(w)
+    #     self.logger.info("w {}".format(w))
+    #     w=softmax(w,beta=1)
+    #     bias=np.random.uniform(low=distribution[1]-distribution[3],high=distribution[1]+distribution[3])
+    #     w=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]})
+    #     bias:List[float]=[bias]
         
-        # if not distribution:
-        #   w=np.random.normal(loc=0.5,scale=0.2,size=3)
-        #   w=softmax(w,beta=1)
-        #   bias=np.random.uniform(low=1,high=4)
-        #   self.logger.info("get prior parameters w {} bias {}".format(w, bias))
-        # else:
-        w1=np.random.normal(loc=distribution[0][0],scale=distribution[2][0])
-        w2=np.random.normal(loc=distribution[0][1],scale=distribution[2][1])
-        w3=np.random.normal(loc=distribution[0][2],scale=distribution[2][2])
-        w=np.array([w1,w2,w3])
-        # w=w/np.sum(w)
-        w=softmax(w,beta=1)
-        bias=np.random.uniform(low=distribution[1]-distribution[3],high=distribution[1]+distribution[3])
-
-        self.logger.info("get parameters w {} bias {}".format(w, bias))
-        w=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]})
-        bias:List[float]=[bias]
-        
-        return w, bias
+    #     return w, bias
 
         
     
@@ -118,5 +125,5 @@ class SampleParameter():
               "prior_activity":self.pri_activity,
               "prior_qed":self.pri_qed,
               "prior_sa":self.pri_sa,
-              "prior_choice":self.prior_choice}
+              "prior_choice":np.array(self.prior_choice,dtype=int)}
         return data

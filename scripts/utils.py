@@ -230,7 +230,7 @@ def write_run_train(output_dir, reinvent_env, reinvent_dir, n_component_configs=
   with open(runfile, 'w') as f:
       f.write("#!/bin/bash -l \n")
       f.write("#SBATCH --gres=gpu:1 --exclude=gpu[11-17]\n") if gpu else f.write("#SBATCH --cpus-per-task=4 \n")
-      f.write('#SBATCH --time=00:05:00 \n')
+      f.write('#SBATCH --time=00:10:00 \n')
       f.write('#SBATCH -o {}/slurm/out_%a.out\n'.format(output_dir))
       f.write('#SBATCH --array=0-{}\n'.format(n_component_configs))
       # f.write('#SBATCH -p short\n')
@@ -287,6 +287,9 @@ def get_component_statistic()->Dict[ComponentEnum,Performance]:
     components_data[ComponentEnum.SIM8]=Performance(**{"activity":0.2347,"qed":0.4646,"sa":0.8360})
     components_data[ComponentEnum.SIM9]=Performance(**{"activity":0.1541,"qed":0.4927,"sa":0.8158})
     components_data[ComponentEnum.SUB]=Performance(**{"activity":0.1124,"qed":0.5713,"sa":0.7237})
+    components_data[ComponentEnum.ACT]=Performance(**{"activity":0.1659,"qed":0.6830,"sa":0.8845})
+    components_data[ComponentEnum.SA]=Performance(**{"activity":0.0863,"qed":0.6482,"sa":0.9031})
+    components_data[ComponentEnum.QED]=Performance(**{"activity":0.0933,"qed":0.7708,"sa":0.8145})
 
 
 

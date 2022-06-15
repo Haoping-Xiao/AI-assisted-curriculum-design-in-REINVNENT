@@ -28,6 +28,9 @@ class ComponentEnum(Enum):
     SIM8:str="sim8"
     SIM9:str="sim9"
     SUB:str="sub"
+    ACT:str="activity"
+    SA:str="sa"
+    QED:str="qed"
     END:None=None
 
 class HypothesisEnum(Enum):
