@@ -30,8 +30,8 @@ class Human():
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
-  __human_performance: List[float]=field(default_factory=lambda:[])
-  __human_ai_performance: List[float]=field(default_factory=lambda:[])
+  __objective_values: List[float]=field(default_factory=lambda:[])
+  __activity_values: List[float]=field(default_factory=lambda:[])
   def __post_init__(self):
     self.__config=ProjectConfig()
     self.ai_output_dir=self.__config.OUT_DIR
@@ -145,14 +145,24 @@ class Human():
       self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
       self.logger.info("current_performance{}".format(self.current_performance))
       self.logger.info("save comparison results after human make decision")
-      self.__human_performance.append(weighted_p1.sum)
-      self.__human_ai_performance.append(weighted_cur_p.sum)
-
+      self.__objective_values.append(weighted_cur_p.sum)
+      self.__activity_values.append(self.current_performance.activity)
     return choice
 
+  def evaluate_prior_choice(self, human_choice:ComponentEnum)->bool:
+    p1=self.read_component_performance(human_choice)
+    weighted_p1=self.weights*p1
+    weighted_cur_p=self.weights*self.current_performance
+    if weighted_cur_p.sum>=weighted_p1.sum:
+      return False
+    else:
+      self.current_performance=p1
+      self.__objective_values.append(weighted_p1.sum)
+      self.__activity_values.append(self.current_performance.activity)
+      return True
 
 
-  def make_decision(self,evaluation:Dict[ComponentEnum,float],advice:Optional[ComponentEnum]=None)->ComponentEnum:    
+  def make_assisted_decision(self,evaluation:Dict[ComponentEnum,float],advice:Optional[ComponentEnum]=None)->ComponentEnum:    
     prob=softmax(list(evaluation.values()),beta=self.bias[0])
     human_choice=np.random.choice(list(evaluation.keys()),p=prob)
     
@@ -167,16 +177,34 @@ class Human():
     
     return decision
 
+  def make_unassisted_decision(self,evaluation:Dict[ComponentEnum,float])->ComponentEnum:
+    prob=softmax(list(evaluation.values()),beta=self.bias[0])
+    human_choice=np.random.choice(list(evaluation.keys()),p=prob)
+    if self.evaluate_prior_choice(human_choice):
+      return human_choice
+    else:
+      return ComponentEnum.END
 
 
-  def create_curriculum(self)->List[ComponentEnum]:
-    """
-      a biased policy to get candidates:
-      big improvement in single property
-    """
+  def create_unassisted_curriculum(self)->List[ComponentEnum]:
+    evaluation=self.evaluate_components()
+    patience=3
+    count=0
+    while True:
+      decision=self.make_unassisted_decision(evaluation)
+      if decision!=ComponentEnum.END:
+        self.curriculum.append(decision)
+      elif count<patience:
+        count+=1
+      else:
+        break
+    self.save_performance()
+    return self.curriculum
+
+  def create_assisted_curriculum(self)->List[ComponentEnum]:
     evaluation=self.evaluate_components()
     while True:
-      decision=self.make_decision(evaluation)
+      decision=self.make_assisted_decision(evaluation)
       self.curriculum.append(decision)
       if decision==ComponentEnum.END:
         break
@@ -184,7 +212,13 @@ class Human():
     return self.curriculum
     
   def save_performance(self):
-    data={"human":self.__human_performance,"human_ai":self.__human_ai_performance,"human_choice":self.ai.prior_choice,"decision":self.curriculum}
+    #prior model performance in production phase
+    prior=get_prior_statistic()
+    prior_objective=(self.weights*prior).sum
+    self.__objective_values.insert(0,prior_objective)
+    self.__activity_values.insert(0,prior.activity)
+    self.curriculum.insert(0,"prior")
+    data={"objective_value":self.__objective_values, "activity":self.__activity_values, "decision":self.curriculum}
     df=pd.DataFrame(data=data)
     performance_path=Path(self.__config.OUT_DIR,"_performance/result_{}.csv".format(datetime.now().strftime("%d-%m-%Y-%H:%M:%S")))
     if performance_path.exists():
@@ -318,7 +352,7 @@ class AI():
         # user model is used to infer the next state.
         user_model=Human(weights=self.inferred_weights,bias=self.inferred_bias, curriculum=self.curriculum, current_performance=self.current_performance)
         evaluation=user_model.evaluate_components()
-        inferred_human_action=user_model.make_decision(evaluation,action.name)
+        inferred_human_action=user_model.make_assisted_decision(evaluation,action.name)
         node.state.take_action(inferred_human_action)
         name=self.__get_state_name(node.state.curriculum+[inferred_human_action])
         state=self.state_space[depth+1][name]
@@ -362,7 +396,7 @@ if __name__=="__main__":
   w,beta=weights[idx],bias[idx]
   print("w: {}, beta: {}".format(w, beta))
   human=Human(weights=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]}),bias=[beta])
-  res=human.create_curriculum()
+  res=human.create_unassisted_curriculum()
   print("res is {}".format(res))
   # output_dir=first_curriculum(["drd2_activity_1"])
   # output_dir=first_curriculum(["drd2_activity_1","QED","sa"])
