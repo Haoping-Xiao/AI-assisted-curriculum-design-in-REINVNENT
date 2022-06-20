@@ -23,12 +23,11 @@ import warnings
 
 @dataclass
 class Human():
-  weights: Performance=Performance(**{HypothesisEnum.ACT.value:0.8,HypothesisEnum.QED.value:0.1,HypothesisEnum.SA.value:0.1})
-  bias: List[float]=field(default_factory=lambda:[2])
+  weights: Performance
+  bias: List[float]=field(default_factory=lambda:[])
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
   prior_data:Performance=field(default_factory=get_prior_statistic)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
-  max_curriculum_num:int=10
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
   __human_performance: List[float]=field(default_factory=lambda:[])
@@ -105,7 +104,7 @@ class Human():
               raise Exception("bugs in setup curriculum: {}".format(e))
 
           try:
-            production_path=self.broker.setup_production(component_name,curriculum_path)
+            production_path=self.broker.setup_production(component_name,curriculum_path,epoch=self.__config.PRODUCTION_EPOCH)
           except Exception as e:
             raise Exception("bugs in setup production: {}".format(e))
         except Exception as e:
@@ -175,23 +174,19 @@ class Human():
       a biased policy to get candidates:
       big improvement in single property
     """
-    count=0
     evaluation=self.evaluate_components()
-    while evaluation and count<self.max_curriculum_num: # there is no component in pool or human decide to terminate
+    while True:
       decision=self.make_decision(evaluation)
-
       self.curriculum.append(decision)
       if decision==ComponentEnum.END:
         break
-      evaluation=self.evaluate_components()
-      count+=1
     self.save_performance()
     return self.curriculum
     
   def save_performance(self):
     data={"human":self.__human_performance,"human_ai":self.__human_ai_performance,"human_choice":self.ai.prior_choice,"decision":self.curriculum}
     df=pd.DataFrame(data=data)
-    performance_path=Path(self.__config.OUT_DIR,"_performance/result.csv")
+    performance_path=Path(self.__config.OUT_DIR,"_performance/result_{}.csv".format(datetime.now().strftime("%d-%m-%Y-%H:%M:%S")))
     if performance_path.exists():
       # in case re-start after some interruptions
       df.to_csv(performance_path,mode="a")
@@ -361,9 +356,12 @@ class AI():
 if __name__=="__main__":
   # suppress scikit model userwarning due to inconsistent scikit version. The drd2 model require 0.21.2 while sa component require 0.21.3
   warnings.simplefilter('ignore', UserWarning)
-
-
-  human=Human()
+  sampler=SampleParameter()
+  weights,bias=sampler.get_parameter(iter=1000)
+  idx=np.random.choice(weights.shape[0])
+  w,beta=weights[idx],bias[idx]
+  print("w: {}, beta: {}".format(w, beta))
+  human=Human(weights=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]}),bias=[beta])
   res=human.create_curriculum()
   print("res is {}".format(res))
   # output_dir=first_curriculum(["drd2_activity_1"])

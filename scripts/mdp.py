@@ -65,8 +65,18 @@ class State():
             if not Path(production_path,self.config.SAMPLE_PATH).exists():
                 try:
                     t=time.time()
-                    production_path=self.broker.setup_production(action,curriculum_path)
+                    production_path=self.broker.setup_production(action,curriculum_path,epoch=self.config.PRODUCTION_EPOCH)
                     self.broker.logger.info("production spent {} secs".format(time.time()-t))
+                except Exception as e:
+                    raise Exception("bugs in setup production: {}".format(e))
+            
+            estimated_production=Path(curriculum_path,"estimated_production_{}".format(self.config.ESTIMATE_PRODUCTION_EPOCH))
+            #check if sample file exists
+            if not Path(estimated_production,self.config.SAMPLE_PATH).exists():
+                try:
+                    t=time.time()
+                    production_path=self.broker.setup_production(action,curriculum_path,epoch=self.config.ESTIMATE_PRODUCTION_EPOCH)
+                    self.broker.logger.info("estimated_production spent {} secs".format(time.time()-t))
                 except Exception as e:
                     raise Exception("bugs in setup production: {}".format(e))
         except Exception as e:
@@ -81,13 +91,13 @@ class State():
         # assume a new component is added into self.currciculum
         # means get_reward should only happen after take_action
         jobname=self.broker.get_jobname()
-        performance_path=Path(self.config.OUT_DIR,"_performance","{}_performance.csv".format(jobname))
+        performance_path=Path(self.config.OUT_DIR,"_estimated_performance_{}","{}_performance.csv".format(self.config.ESTIMATE_PRODUCTION_EPOCH,jobname))
         if not performance_path.exists():
-            production_path=Path(self.config.OUT_DIR,jobname,"production")
+            production_path=Path(self.config.OUT_DIR,jobname,"estimated_production_{}".format(self.config.ESTIMATE_PRODUCTION_EPOCH))
             smiles_path=Path(production_path,self.config.SAMPLE_PATH)
             smiles=  read_sample_smiles(smiles_path) 
             performance:Performance=self.broker.infer_performance(smiles)
-            self.broker.save_performance(jobname,performance)
+            self.broker.save_performance(jobname,performance,estimated=True)
         else:
             df=pd.read_csv(performance_path,index_col=0)
             performance:Performance=Performance(df[HypothesisEnum.ACT.value][0],df[HypothesisEnum.QED.value][0],df[HypothesisEnum.SA.value][0])

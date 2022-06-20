@@ -47,9 +47,12 @@ class ProjectConfig():
     RESULT_FOLDER:str="results_0"
     TRAIN_ENDING_MSG:str="Finish training"
     SAMPLE_ENDING_MSG:str="Finish sampling"
+    TRAIN_LOG:str="slurm/train_0.out"
+    SAMPLE_LOG:str="slurm/sample_0.out"
     TRAIN_SCRIPT:str="runs.sh"
     SAMPLE_SCRIPT:str="run_sample.sh"
-
+    ESTIMATE_PRODUCTION_EPOCH:int=200
+    PRODUCTION_EPOCH:int=300
     def __post_init__(self):
         self.MODEL_PATH=Path(self.RESULT_FOLDER,"Agent.ckpt")
         self.SAMPLE_PATH=Path(self.RESULT_FOLDER,"sampled.csv")

@@ -16,12 +16,14 @@ from scorer import get_scorer
 
 logging.basicConfig(format=' %(levelname)s %(asctime)s %(name)s %(message)s',level = logging.DEBUG)
 
-def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,output_dir:Path, using_gpu:Optional[bool]=True ,production_mode:Optional[bool]=False)->Path:
+def execute_curriculum(jobname:str, component_config:List[Dict], agent:Path,output_dir:Path, epoch:int, using_gpu:Optional[bool]=True ,production_mode:Optional[bool]=False)->Path:
   # jobname = '_'.join(list(map(lambda enums: enums.value,curriculum_name)))
   jobid=datetime.now().strftime("%d-%m-%Y")
-  epoch=300
-  if production_mode:
+  config=ProjectConfig()
+  if production_mode and epoch==config.PRODUCTION_EPOCH:
     output_dir=os.path.join(output_dir,"production")
+  elif production_mode and epoch==config.ESTIMATE_PRODUCTION_EPOCH:
+    output_dir=os.path.join(output_dir,"estimated_production_{}".format(config.ESTIMATE_PRODUCTION_EPOCH))
   else:
     output_dir=os.path.join(output_dir,"{}".format(jobname))
   if not os.path.exists(output_dir):
@@ -70,17 +72,23 @@ def successful_end(jobname:str, logfile_path: Path, ending_message:str, slurm_ou
         break
   return not has_error
 
-def run_job(jobname:str, output_dir:Path, ending_message:str, script:str, slurm_output_path: str = "slurm/out_0.out")->bool:
+def run_job(jobname:str, output_dir:Path, ending_message:str, script:str)->bool:
   '''
     ending_message:str="Finish training" or "Finish sampling"
     script:str="runs.sh" or "run_sample.sh"
   '''
-  if Path(output_dir,slurm_output_path).is_file():
+  config=ProjectConfig()
+  if ending_message==config.SAMPLE_ENDING_MSG:
+    slurm_output_path=config.SAMPLE_LOG
+  else:
+    slurm_output_path=config.TRAIN_LOG
+
+  if not Path(output_dir,slurm_output_path).is_file():
     #clean old slurm output
-    os.remove(Path(output_dir,slurm_output_path))
-  command=['sbatch',Path(output_dir,script)] 
-  subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-  logging.info("Start {}".format(jobname))
+    # os.remove(Path(output_dir,slurm_output_path))
+    command=['sbatch',Path(output_dir,script)] 
+    subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+    logging.info("Start {}".format(Path(output_dir,script)))
   if successful_end(jobname, output_dir,ending_message,slurm_output_path):
       return True
   else:
@@ -109,7 +117,7 @@ class CurriculumBroker():
     else:
         prior_agent=Path(self.__config.PRIOR_DIR)
     component_config=self.setup_component(component_name,weight=1) # 1 is a default value
-    curriculum_path=execute_curriculum(jobname,component_config,prior_agent,self.__config.OUT_DIR)
+    curriculum_path=execute_curriculum(jobname,component_config,prior_agent,self.__config.OUT_DIR, epoch=self.__config.PRODUCTION_EPOCH)
     success=run_job(jobname+" training",curriculum_path,self.__config.TRAIN_ENDING_MSG, self.__config.TRAIN_SCRIPT)
 
     if not success:
@@ -133,7 +141,7 @@ class CurriculumBroker():
             break
     return component_config
 
-  def setup_production(self,component_name:ComponentEnum,curriculum_path:Path)->Path:
+  def setup_production(self,component_name:ComponentEnum,curriculum_path:Path,epoch:int)->Path:
     # self.curriculum remains the same in the evaluation stage, append it only when human make a decision.
     jobname=self.get_jobname(component_name)+" production"
     if len(self.curriculum):
@@ -142,7 +150,7 @@ class CurriculumBroker():
       prior_agent=self.__config.PRIOR_DIR
     component_config=self.setup_component(HypothesisEnum.ACT,weight=1)
     # jobname=self.get_jobname(evaluated_curriclum=[HypothesisEnum.ACT])
-    production_path=execute_curriculum(jobname,component_config,prior_agent,curriculum_path,production_mode=True)
+    production_path=execute_curriculum(jobname,component_config,prior_agent,curriculum_path,epoch,production_mode=True)
 
     success=run_job(jobname+" training",production_path,self.__config.TRAIN_ENDING_MSG,self.__config.TRAIN_SCRIPT)
     # success=run_internal_job(jobname+" training",production_path,Path(production_path,self.__config.MODEL_PATH),self.__config.TRAIN_CONFIG)
@@ -166,9 +174,9 @@ class CurriculumBroker():
     return Performance(**scores)
 
 
-  def save_performance(self,jobname:ComponentEnum,performance:Performance):
+  def save_performance(self,jobname:ComponentEnum,performance:Performance,estimated:Optional[bool]=False):
     #create a new folder to save
-    path=Path(self.__config.OUT_DIR,"_performance")
+    path=Path(self.__config.OUT_DIR,"_estimated_performance_{}".format(self.__config.ESTIMATE_PRODUCTION_EPOCH))  if estimated else Path(self.__config.OUT_DIR,"_performance") 
     try:
         os.makedirs(path)
     except FileExistsError:

@@ -33,12 +33,9 @@ parameters{
 model{
   vector[J] prior_prob;
   vector[J] prior_scores;
-  //matrix[K, J] prior_prob;
-  //row_vector[J] prior_scores;
-  //w ~ normal(.5, .2);
-  w[1]~normal(.7,.05);
-  w[2]~normal(.15,.05);
-  w[3]~normal(.15,.05);
+  w[1]~normal(.8,.1);
+  w[2]~normal(.1,.05);
+  w[3]~normal(.1,.05);
   beta1~uniform(1,4);
   
   prior_scores=w[1]*prior_activity+ w[2]*prior_qed + w[3]* prior_sa;
