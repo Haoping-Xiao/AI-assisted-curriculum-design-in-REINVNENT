@@ -9,6 +9,8 @@ scripts/deprecated
 scripts/run_component.py
 scripts/scorer.py
 scripts/test_*
+scripts/*.ipynb*
+scripts/slurm/
 .mypy_cache
 models/
 unittest/
