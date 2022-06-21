@@ -1,4 +1,5 @@
 from __future__ import annotations
+from random import random
 from secrets import choice
 import pystan
 from typing import Dict, List, Optional, Tuple,Union
@@ -18,15 +19,15 @@ import logging
 from multiprocessing import Pool
 from datetime import datetime
 import warnings
-
+import argparse
 
 
 @dataclass
 class Human():
   weights: Performance
   bias: List[float]=field(default_factory=lambda:[])
-  components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic)
-  prior_data:Performance=field(default_factory=get_prior_statistic)
+  components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic,repr=False)
+  prior_data:Performance=field(default_factory=get_prior_statistic,repr=False)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
@@ -162,7 +163,7 @@ class Human():
       return True
 
 
-  def make_assisted_decision(self,evaluation:Dict[ComponentEnum,float],advice:Optional[ComponentEnum]=None)->ComponentEnum:    
+  def make_assisted_decision(self,evaluation:Dict[ComponentEnum,float],advice:Optional[ComponentEnum]=None,save:Optional[bool]=True)->ComponentEnum:    
     prob=softmax(list(evaluation.values()),beta=self.bias[0])
     human_choice=np.random.choice(list(evaluation.keys()),p=prob)
     
@@ -171,9 +172,9 @@ class Human():
       #inform AI
       self.ai.prior_choice.append(self.ai.sampler.component_to_int(human_choice))
 
-      decision=self.evaluate_advice(human_choice,advice,save=True)
+      decision=self.evaluate_advice(human_choice,advice,save=save)
     else: #served as user model in AI, the AI estimate how human will choose
-      decision=self.evaluate_advice(human_choice,advice,save=False)
+      decision=self.evaluate_advice(human_choice,advice,save=save)
     
     return decision
 
@@ -201,13 +202,17 @@ class Human():
     self.save_performance()
     return self.curriculum
 
-  def create_assisted_curriculum(self)->List[ComponentEnum]:
+  def create_assisted_curriculum(self,random_advice:Optional[bool]=False)->List[ComponentEnum]:
     evaluation=self.evaluate_components()
     while True:
-      decision=self.make_assisted_decision(evaluation)
-      self.curriculum.append(decision)
+      if not random_advice:
+        decision=self.make_assisted_decision(evaluation)
+      else:
+        advice=np.random.choice(ComponentEnum)
+        decision=self.make_assisted_decision(evaluation,advice=advice)
       if decision==ComponentEnum.END:
         break
+      self.curriculum.append(decision)
     self.save_performance()
     return self.curriculum
     
@@ -352,7 +357,7 @@ class AI():
         # user model is used to infer the next state.
         user_model=Human(weights=self.inferred_weights,bias=self.inferred_bias, curriculum=self.curriculum, current_performance=self.current_performance)
         evaluation=user_model.evaluate_components()
-        inferred_human_action=user_model.make_assisted_decision(evaluation,action.name)
+        inferred_human_action=user_model.make_assisted_decision(evaluation,action.name,save=False)
         node.state.take_action(inferred_human_action)
         name=self.__get_state_name(node.state.curriculum+[inferred_human_action])
         state=self.state_space[depth+1][name]
@@ -390,13 +395,22 @@ class AI():
 if __name__=="__main__":
   # suppress scikit model userwarning due to inconsistent scikit version. The drd2 model require 0.21.2 while sa component require 0.21.3
   warnings.simplefilter('ignore', UserWarning)
-  sampler=SampleParameter()
-  weights,bias=sampler.get_parameter(iter=1000)
-  idx=np.random.choice(weights.shape[0])
-  w,beta=weights[idx],bias[idx]
-  print("w: {}, beta: {}".format(w, beta))
-  human=Human(weights=Performance(**{HypothesisEnum.ACT.value:w[0],HypothesisEnum.QED.value:w[1],HypothesisEnum.SA.value:w[2]}),bias=[beta])
-  res=human.create_unassisted_curriculum()
+
+  parser = argparse.ArgumentParser(prog="AI-assisted curriculum learning",description="require reward parameters and bias parameter")
+  parser.add_argument('w1',type=float,  help="reward parameter 1")
+  parser.add_argument('w2',type=float,  help="reward parameter 2")
+  parser.add_argument('w3',type=float,  help="reward parameter 3")
+  parser.add_argument('beta',type=float,  help="bias parameter")
+  args=parser.parse_args()
+
+  # sampler=SampleParameter()
+  # weights,bias=sampler.get_parameter(iter=1000)
+  # idx=np.random.choice(weights.shape[0])
+  # w,beta=weights[idx],bias[idx]
+  # print("w: {}, beta: {}".format(w, beta))
+  human=Human(weights=Performance(**{HypothesisEnum.ACT.value:args.w1,HypothesisEnum.QED.value:args.w2,HypothesisEnum.SA.value:args.w3}),bias=[args.beta])
+  print(human)
+  res=human.create_assisted_curriculum()
   print("res is {}".format(res))
   # output_dir=first_curriculum(["drd2_activity_1"])
   # output_dir=first_curriculum(["drd2_activity_1","QED","sa"])

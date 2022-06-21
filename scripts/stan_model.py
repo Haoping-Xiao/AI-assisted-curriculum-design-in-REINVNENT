@@ -54,8 +54,8 @@ class SampleParameter():
         data=self.prepare_data()
         model=pystan.StanModel(file=self.__config.STAN_PATH)
         fit=model.sampling(data=data,iter=iter)
-        with open(Path(self.__config.OUT_DIR,"{}.pkl".format(self.get_jobname())),"wb") as f:
-          pickle.dump({"model":model,"fit":fit},f,protocol=-1)
+        # with open(Path(self.__config.OUT_DIR,"{}.pkl".format(self.get_jobname())),"wb") as f:
+        #   pickle.dump({"model":model,"fit":fit},f,protocol=-1)
           
         res=fit.extract()
         weights=res["w"] 
