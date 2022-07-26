@@ -20,10 +20,6 @@ def visualize_property(property_score,label,path):
   plt.hist(property_score,color='red',label=label)
   plt.legend()
   plt.savefig(os.path.join(path,"{}.png".format(task_name)))
-  # plt.figure()
-  # plt.hist(property_score[labels==0],color='blue',label='inactive')
-  # plt.legend()
-  # plt.savefig(os.path.join(path,"{}_{}.png".format('inactive',property)))
 
 def maximum_graph_length(mol):
   return int(np.max(GetDistanceMatrix(mol)))

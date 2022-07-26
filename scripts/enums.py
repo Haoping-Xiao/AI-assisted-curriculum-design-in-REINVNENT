@@ -51,6 +51,8 @@ class ProjectConfig():
     SAMPLE_LOG:str="slurm/sample_0.out"
     TRAIN_SCRIPT:str="runs.sh"
     SAMPLE_SCRIPT:str="run_sample.sh"
+    TRAIN_FLAG:str="train_flag.txt"
+    SAMPLE_FLAG:str="sample_flag.txt"
     ESTIMATE_PRODUCTION_EPOCH:int=200
     PRODUCTION_EPOCH:int=300
     def __post_init__(self):

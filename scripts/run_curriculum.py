@@ -80,12 +80,15 @@ def run_job(jobname:str, output_dir:Path, ending_message:str, script:str)->bool:
   config=ProjectConfig()
   if ending_message==config.SAMPLE_ENDING_MSG:
     slurm_output_path=config.SAMPLE_LOG
+    flag=config.SAMPLE_FLAG
   else:
     slurm_output_path=config.TRAIN_LOG
+    flag=config.TRAIN_FLAG
 
-  if not Path(output_dir,slurm_output_path).is_file():
-    #clean old slurm output
-    # os.remove(Path(output_dir,slurm_output_path))
+  if not Path(output_dir,flag).is_file():
+    with open(Path(output_dir,flag),"w"):
+      # create a flag file to skip runnning the same job
+      pass
     command=['sbatch',Path(output_dir,script)] 
     subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
     logging.info("Start {}".format(Path(output_dir,script)))

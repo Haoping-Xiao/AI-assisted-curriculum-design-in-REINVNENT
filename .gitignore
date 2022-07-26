@@ -11,6 +11,7 @@ scripts/scorer.py
 scripts/test_*
 scripts/*.ipynb*
 scripts/slurm/
+scripts/args.csv
 .mypy_cache
 models/
 unittest/

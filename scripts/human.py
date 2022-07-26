@@ -1,23 +1,18 @@
 from __future__ import annotations
-from random import random
-from secrets import choice
-import pystan
-from typing import Dict, List, Optional, Tuple,Union
+
+from typing import Dict, List, Optional
 from dataclasses import dataclass,field
 from scorer import get_scorer
-from copy import deepcopy
 import numpy as np
 import pandas as pd
 from utils import get_component_statistic, Performance, get_prior_statistic, softmax, read_sample_smiles
 from run_curriculum import CurriculumBroker
-# from AI_assistant import AI_assistant
 from mdp import Node, State, Action
 from enums import ComponentEnum,HypothesisEnum,ProjectConfig
 from pathlib import Path
 from stan_model import SampleParameter
 import logging
 from multiprocessing import Pool
-from datetime import datetime
 import warnings
 import argparse
 
@@ -25,14 +20,15 @@ import argparse
 @dataclass
 class Human():
   weights: Performance
+  id: int
   bias: List[float]=field(default_factory=lambda:[])
   components_data:Dict[ComponentEnum,Performance]=field(default_factory=get_component_statistic,repr=False)
   prior_data:Performance=field(default_factory=get_prior_statistic,repr=False)
   curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
   current_performance: Performance=field(default_factory=get_prior_statistic)
   hypothesis_classes: List[ComponentEnum]=field(default_factory=lambda:[HypothesisEnum.ACT,HypothesisEnum.QED,HypothesisEnum.SA])
-  __objective_values: List[float]=field(default_factory=lambda:[])
-  __activity_values: List[float]=field(default_factory=lambda:[])
+  objective_values: List[float]=field(default_factory=lambda:[])
+  activity_values: List[float]=field(default_factory=lambda:[])
   def __post_init__(self):
     self.__config=ProjectConfig()
     self.ai_output_dir=self.__config.OUT_DIR
@@ -49,7 +45,7 @@ class Human():
     return logger
 
   def get_AI_assistant(self)->AI:
-    ai=AI(current_performance=self.current_performance,curriculum=self.curriculum)
+    ai=AI(current_performance=self.current_performance,id=self.id,curriculum=self.curriculum)
     return ai
 
   def get_performance(self,smiles:pd.DataFrame)->Performance:
@@ -62,10 +58,6 @@ class Human():
   def setup_curriculum_pool(self)->List[ComponentEnum]:
     pool=[]
     for component in ComponentEnum:
-      # human have to think about components until they satisfy with current performance. When setup the pool, it means human still want improvement.
-      # Therefore, End is not the option.
-      if component != ComponentEnum.END:
-      # if component not in (self.hypothesis_classes + self.curriculum + [ComponentEnum.END]):
         pool.append(component)
     return pool
 
@@ -85,9 +77,6 @@ class Human():
     return evaluation
   
 
-  # def get_jobname(self, component_name:ComponentEnum)->str:
-  #   evaluated_curriclum=self.curriculum+[component_name]
-  #   return '_'.join(list(map(lambda enums: enums.value,evaluated_curriclum)))
 
   def read_component_performance(self, component_name:ComponentEnum)->Performance:
     jobname=self.broker.get_jobname(component_name)
@@ -125,9 +114,7 @@ class Human():
     weighted_p1=self.weights*p1
     weighted_p2=self.weights*p2
     weighted_cur_p=self.weights*self.current_performance
-    # prob=np.exp(self.bias[1]*(p2.sum-p1.sum))/(1+np.exp(self.bias[1]*(p2.sum-p1.sum)))
-    
-    # choice=np.random.choice([human_choice,advice],p=[1-prob,prob])
+
     if weighted_cur_p.sum>=weighted_p1.sum and weighted_cur_p.sum>=weighted_p2.sum:
       self.logger.info("There is no improvement! Ending the selection!")
       choice=ComponentEnum.END
@@ -146,8 +133,11 @@ class Human():
       self.logger.info("For curriculum {}, human choose {}".format(len(self.curriculum),choice))
       self.logger.info("current_performance{}".format(self.current_performance))
       self.logger.info("save comparison results after human make decision")
-      self.__objective_values.append(weighted_cur_p.sum)
-      self.__activity_values.append(self.current_performance.activity)
+      if choice!=ComponentEnum.END:
+        self.objective_values.append(weighted_cur_p.sum)
+        self.activity_values.append(self.current_performance.activity)
+        self.curriculum.append(choice)
+      self.save_performance()
     return choice
 
   def evaluate_prior_choice(self, human_choice:ComponentEnum)->bool:
@@ -158,8 +148,10 @@ class Human():
       return False
     else:
       self.current_performance=p1
-      self.__objective_values.append(weighted_p1.sum)
-      self.__activity_values.append(self.current_performance.activity)
+      print(self.current_performance)
+      print("cur {}, p1 {}, select {}".format(weighted_cur_p.sum,weighted_p1.sum,weighted_p1.sum))
+      self.objective_values.append(weighted_p1.sum)
+      self.activity_values.append(self.current_performance.activity)
       return True
 
 
@@ -195,11 +187,11 @@ class Human():
       decision=self.make_unassisted_decision(evaluation)
       if decision!=ComponentEnum.END:
         self.curriculum.append(decision)
-      elif count<patience:
+        self.save_performance()
+      elif count<=patience:
         count+=1
       else:
         break
-    self.save_performance()
     return self.curriculum
 
   def create_assisted_curriculum(self,random_advice:Optional[bool]=False)->List[ComponentEnum]:
@@ -212,25 +204,22 @@ class Human():
         decision=self.make_assisted_decision(evaluation,advice=advice)
       if decision==ComponentEnum.END:
         break
-      self.curriculum.append(decision)
-    self.save_performance()
     return self.curriculum
     
   def save_performance(self):
     #prior model performance in production phase
     prior=get_prior_statistic()
     prior_objective=(self.weights*prior).sum
-    self.__objective_values.insert(0,prior_objective)
-    self.__activity_values.insert(0,prior.activity)
-    self.curriculum.insert(0,"prior")
-    data={"objective_value":self.__objective_values, "activity":self.__activity_values, "decision":self.curriculum}
+    obj=[prior_objective]
+    act=[prior.activity]
+    decision=["prior"]
+    obj.extend(self.objective_values)
+    act.extend(self.activity_values)
+    decision.extend(self.curriculum)
+    data={"objective_value":obj, "activity":act, "decision":decision}
     df=pd.DataFrame(data=data)
-    performance_path=Path(self.__config.OUT_DIR,"_performance/result_{}.csv".format(datetime.now().strftime("%d-%m-%Y-%H:%M:%S")))
-    if performance_path.exists():
-      # in case re-start after some interruptions
-      df.to_csv(performance_path,mode="a")
-    else:
-      df.to_csv(performance_path)
+    performance_path=Path(self.__config.OUT_DIR,"_performance/assisted_result_{}.csv".format(self.id))
+    df.to_csv(performance_path)
     
 
 
@@ -239,6 +228,7 @@ class Human():
 @dataclass
 class AI():
     current_performance: Performance
+    id:int
     prior_choice: List[int]=field(default_factory=lambda:[])
     curriculum: List[ComponentEnum]=field(default_factory=lambda:[])
     n_inter:int=1000
@@ -246,7 +236,6 @@ class AI():
     exploration_constant:float=1/np.sqrt(2)
     max_depth:int=1
     gamma:float=1
-
     def __post_init__(self):
         self.logger=logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -257,13 +246,6 @@ class AI():
         """
           give a state, search for best actions
         """
-
-        # if len(self.prior_choice)==0:
-        #   #prior knowledge
-        #   distribution=([0.7,0.15,0.15],3,[0.05,0.05,0.05],2)
-        #   self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:distribution[0][0],HypothesisEnum.QED.value:distribution[0][1],HypothesisEnum.SA.value:distribution[0][2]}),[distribution[1]]
-        # else:
-        #   distribution=None
         weights,beta= self.sampler.get_parameter(iter=self.n_inter)
         self.inferred_weights,self.inferred_bias=Performance(**{HypothesisEnum.ACT.value:weights[0][0],HypothesisEnum.QED.value:weights[0][1],HypothesisEnum.SA.value:weights[0][2]}),[beta[0]]
 
@@ -281,16 +263,13 @@ class AI():
         
         for i in range(self.n_inter):
             if i>0:
-
-              # weights,bias=Performance(**{HypothesisEnum.ACT.value:weights[i][0],HypothesisEnum.QED.value:weights[i][1],HypothesisEnum.SA.value:weights[i][2]}),[beta[i]]
-              # self.logger.info("get parameters w {} bias {}".format(weights, bias))
               # trick: update weights in state space due to shallow copy
               self.inferred_weights.activity=weights[i][0]
               self.inferred_weights.qed=weights[i][1]
               self.inferred_weights.sa=weights[i][2]
               self.inferred_bias[0]=beta[i]
 
-            self.logger.info("get parameters w {} bias {}".format(self.inferred_weights, self.inferred_bias))
+            self.logger.info("iter {}: get parameters w {} bias {}".format(i, self.inferred_weights, self.inferred_bias))
             
             self.simulate(root,depth=0)
         self.check_node(root)
@@ -355,7 +334,7 @@ class AI():
         # user model, know the hypothesis class but not the parameters.
         # user model will not use AI. 
         # user model is used to infer the next state.
-        user_model=Human(weights=self.inferred_weights,bias=self.inferred_bias, curriculum=self.curriculum, current_performance=self.current_performance)
+        user_model=Human(weights=self.inferred_weights,id=self.id,bias=self.inferred_bias, curriculum=self.curriculum, current_performance=self.current_performance)
         evaluation=user_model.evaluate_components()
         inferred_human_action=user_model.make_assisted_decision(evaluation,action.name,save=False)
         node.state.take_action(inferred_human_action)
@@ -401,87 +380,10 @@ if __name__=="__main__":
   parser.add_argument('w2',type=float,  help="reward parameter 2")
   parser.add_argument('w3',type=float,  help="reward parameter 3")
   parser.add_argument('beta',type=float,  help="bias parameter")
+  parser.add_argument('id',type=int,  help="human id")
   args=parser.parse_args()
-
-  # sampler=SampleParameter()
-  # weights,bias=sampler.get_parameter(iter=1000)
-  # idx=np.random.choice(weights.shape[0])
-  # w,beta=weights[idx],bias[idx]
-  # print("w: {}, beta: {}".format(w, beta))
-  human=Human(weights=Performance(**{HypothesisEnum.ACT.value:args.w1,HypothesisEnum.QED.value:args.w2,HypothesisEnum.SA.value:args.w3}),bias=[args.beta])
-  print(human)
+  human=Human(weights=Performance(**{HypothesisEnum.ACT.value:args.w1,HypothesisEnum.QED.value:args.w2,HypothesisEnum.SA.value:args.w3}),id=args.id, bias=[args.beta])
+  # res=human.create_assisted_curriculum(random_advice=True)
+  # res=human.create_unassisted_curriculum()
   res=human.create_assisted_curriculum()
   print("res is {}".format(res))
-  # output_dir=first_curriculum(["drd2_activity_1"])
-  # output_dir=first_curriculum(["drd2_activity_1","QED","sa"])
-  # path:Path="/scratch/work/xiaoh2/Thesis/results/curriculum/_performance/hba1_performance.csv"
-  # df=pd.read_csv(path)
-  # print(df)
-  # data={"activity":0.12,"qed":0.55,"sa":0.93}
-  # prob=
-  # print(np.random.choice(list(data.keys()),p=prob))
-  # test=Performance(**data)
-  # print(test.activity)
-  # print(output_dir)
-  # next_curriculum("/scratch/work/xiaoh2/Thesis/scripts/../results/run_curriculum_drd2_activity_1",["drd2_activity_1","QED"])
-  # next_curriculum("/scratch/work/xiaoh2/Thesis/results/run_curriculum_drd2_activity_1/run_curriculum_QED",["drd2_activity_1","QED","sa"])
-  # next_curriculum("/scratch/work/xiaoh2/Thesis/results/curriculum_drd2_activity_1/curriculum_QED","sa")
-
-
-# data["sa"]=  {"tpsa_1":0.93,
-    #               "tpsa_3":0.90,
-    #               "Custom_alerts":0.95,
-    #               "number_of_stereo_centers_1":0.93,
-    #               "graph_length_1":0.93,
-    #               "graph_length_2":0.93,
-    #               "num_hba_lipinski_1":0.93,
-    #               "num_hba_lipinski_2":0.93,
-    #               "num_hba_lipinski_3":0.94,
-    #               "num_hbd_lipinski_1":0.93,
-    #               "num_hbd_lipinski_3":0.94,
-    #               "num_rotatable_bonds_1":0.92,
-    #               "num_rings_1":0.94,
-    #               "num_rings_3":0.92,
-    #               "slogp_1":0.93,
-    #               "slogp_2":0.94,
-    #               "Molecular_mass_4":0.94,
-    #               "Molecular_mass_1":0.95,
-    #               }
-    # data["qed"]= {"tpsa_1":0.55,
-    #               "tpsa_3":0.71,
-    #               "Custom_alerts":0.59,
-    #               "number_of_stereo_centers_1":0.59,
-    #               "graph_length_1":0.57,
-    #               "graph_length_2":0.54,
-    #               "num_hba_lipinski_1":0.61,
-    #               "num_hba_lipinski_2":0.60,
-    #               "num_hba_lipinski_3":0.57,
-    #               "num_hbd_lipinski_1":0.59,
-    #               "num_hbd_lipinski_3":0.57,
-    #               "num_rotatable_bonds_1":0.64,
-    #               "num_rings_1":0.64,
-    #               "num_rings_3":0.49,
-    #               "slogp_1":0.68,
-    #               "slogp_2":0.62,
-    #               "Molecular_mass_4":0.65,
-    #               "Molecular_mass_1":0.59,
-    #               }
-    # data["activity"]={"tpsa_1":0.12,
-    #                   "tpsa_3":0.36,
-    #                   "Custom_alerts":0.13,
-    #                   "number_of_stereo_centers_1":0.15,
-    #                   "graph_length_1":0.13,
-    #                   "graph_length_2":0.10,
-    #                   "num_hba_lipinski_1":0.13,
-    #                   "num_hba_lipinski_2":0.14,
-    #                   "num_hba_lipinski_3":0.10,
-    #                   "num_hbd_lipinski_1":0.15,
-    #                   "num_hbd_lipinski_3":0.12,
-    #                   "num_rotatable_bonds_1":0.14,
-    #                   "num_rings_1":0.12,
-    #                   "num_rings_3":0.13,
-    #                   "slogp_1":0.13,
-    #                   "slogp_2":0.14,
-    #                   "Molecular_mass_4":0.12,
-    #                   "Molecular_mass_1":0.10,
-    #                   }
